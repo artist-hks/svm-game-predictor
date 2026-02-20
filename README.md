@@ -8,7 +8,7 @@ This project demonstrates the complete ML pipeline from data preprocessing and m
 
 ## 🚀 Live Demo
 
-👉 *(Add your Streamlit link here after deployment)*
+👉 *(https://svm-game-predictor-5u4hudbxahhnub9u9s3eqb.streamlit.app/)*
 
 ---
 
