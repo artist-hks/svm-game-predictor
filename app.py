@@ -377,7 +377,7 @@ st.markdown("### 📈 ROC-AUC Comparison")
 roc_col, info_col = st.columns([2, 1])
 
 with roc_col:
-    fig_roc, ax = plt.subplots(figsize=(5, 4))
+    fig_roc, ax = plt.subplots(figsize=(4, 3))
 
     models_proba = {
         "SVM": svm_proba,
@@ -412,7 +412,8 @@ with roc_col:
         ax.set_xlabel("False Positive Rate")
         ax.set_ylabel("True Positive Rate")
         ax.set_title("ROC Curve Comparison")
-        ax.legend(fontsize=8)
+        ax.legend(fontsize=7)
+        plt.tight_layout(pad=0.8)
         plt.tight_layout()
 
         st.pyplot(fig_roc, use_container_width=False)
