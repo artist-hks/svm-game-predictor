@@ -45,7 +45,52 @@ st.markdown("""
     --accent-orange: #f59e0b;
     --accent-red: #ef4444;
 }
+/* ---- Netflix Hero Header ---- */
+.hero-container {
+    position: relative;
+    padding: 28px 32px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #020617 0%, #0f172a 60%, #020617 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
 
+.hero-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(34,197,94,0.18), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(59,130,246,0.15), transparent 40%);
+    pointer-events: none;
+}
+
+.hero-title {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+
+.hero-subtitle {
+    color: #9aa0a6;
+    font-size: 15px;
+    margin-bottom: 14px;
+}
+
+.hero-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hero-badge {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+}
 /* ---- Main container ---- */
 .block-container {
     padding-top: 2rem;
@@ -328,8 +373,22 @@ def prepare_similarity_engine(df):
 sim_games, nn_model = prepare_similarity_engine(df_games)
 # ---------------- HEADER ----------------
 st.toast("Model ready", icon="🤖")
-st.markdown('<div class="main-header">🎮 Video Game Sales Intelligence</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Predict • Analyze • Recommend</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-title">🎮 Video Game Sales Intelligence</div>
+    <div class="hero-subtitle">
+        Production-grade ML dashboard for sales prediction, explainability,
+        and interactive analytics.
+    </div>
+    <div class="hero-badges">
+        <div class="hero-badge">SVM Primary</div>
+        <div class="hero-badge">XGBoost Benchmark</div>
+        <div class="hero-badge">SHAP Enabled</div>
+        <div class="hero-badge">Drift Monitor</div>
+        <div class="hero-badge">Calibrated Probs</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------- SIDEBAR (REAL-TIME SLIDERS) ----------------
 st.sidebar.markdown("## ⚙️ Control Panel")
