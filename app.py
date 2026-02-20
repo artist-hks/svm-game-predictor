@@ -373,20 +373,20 @@ with tab3:
     st.plotly_chart(fig_time, use_container_width=True)
 
     st.markdown("---")
-st.markdown("### 📈 ROC-AUC Comparison")
+    st.markdown("### 📈 ROC-AUC Comparison")
 
-fig_roc, ax = plt.subplots(figsize=(6, 5))
+    fig_roc, ax = plt.subplots(figsize=(6, 5))
 
-models_proba = {
-    "SVM": svm_proba,
-    "Naive Bayes": nb_proba,
-    "KNN": knn_proba,
-}
+    models_proba = {
+        "SVM": svm_proba,
+        "Naive Bayes": nb_proba,
+        "KNN": knn_proba,
+    }
 
-for name, proba_vals in models_proba.items():
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
+    for name, proba_vals in models_proba.items():
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
 
     # compute ROC for each class then average
     for i in range(n_classes):
