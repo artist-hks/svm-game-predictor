@@ -136,6 +136,7 @@ def load_assets():
     calibrated_model.fit(X_scaled, y_sample)
 
     return base_model, calibrated_model, scaler
+model, calibrated_model, scaler = load_assets()
 
 # ----- LOAD DATASET  -----
 @st.cache_data
