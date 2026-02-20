@@ -355,7 +355,7 @@ st.sidebar.caption(
 )
 
 # ---------------- TABS ----------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
@@ -364,7 +364,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "🎮 Game Recommender",
     "🧪 Model Diagnostics",
     "🎛️ What-If Simulator",
-    "🧭 Drift Monitor"
+    "🧭 Drift Monitor",
+    "📘 About Model"
 ])
 
 # ============================================================
@@ -1189,6 +1190,92 @@ with tab9:
     })
 
     st.dataframe(compare_df, use_container_width=True)
+
+# ============================================================
+# TAB 10 — ABOUT MODEL
+# ============================================================
+with tab10:
+    st.subheader("📘 About This Project")
+
+    st.markdown("""
+### 🎯 Problem Statement
+This application predicts the **global sales performance class** of a video game
+(Low, Medium, High) based on regional sales inputs.
+
+The goal is to demonstrate an end-to-end production-style ML workflow including
+model comparison, explainability, monitoring, and interactive simulation.
+
+---
+
+### 📊 Input Features
+The model uses the following numerical features:
+
+- NA_Sales  
+- EU_Sales  
+- JP_Sales  
+- Other_Sales  
+
+Target variable is derived from **Global_Sales** using quantile-based binning.
+
+---
+
+### 🧠 Models Implemented
+The system compares multiple ML algorithms:
+
+- Gaussian Naive Bayes  
+- K-Nearest Neighbors  
+- Decision Tree  
+- Support Vector Machine (primary model)  
+- XGBoost  
+
+This provides a bias–variance and algorithmic diversity comparison.
+
+---
+
+### 🧪 Evaluation Strategy
+Models are evaluated using:
+
+- Train–test split  
+- Stratified 5-fold cross-validation  
+- Accuracy comparison  
+- Confusion matrices  
+- ROC analysis  
+- Probability calibration  
+
+---
+
+### ⚠️ Known Limitations
+Important for responsible interpretation:
+
+- Sales data is historical and platform-dependent  
+- Quantile binning may oversimplify real revenue patterns  
+- Regional sales are highly correlated  
+- Model does not include marketing or release timing factors  
+- Predictions are indicative, not financial forecasts  
+
+---
+
+### 🚀 Future Improvements
+Potential production enhancements:
+
+- larger and updated dataset  
+- feature enrichment (publisher, genre encoding)  
+- time-aware validation  
+- automated drift retraining pipeline  
+- real user telemetry integration  
+
+---
+
+### 👨‍💻 Developer
+**Hemant Kumar Sharma (HKS)**  
+B.Tech Computer Science • UI/UX Designer • ML Enthusiast
+
+Built with Streamlit, scikit-learn, and Plotly.
+""")
+
+    st.markdown("---")
+
+    st.caption("Model Version: v1.0 • Last Updated: 2026")
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("Built by HKS • Machine Learning • UI/UX")
