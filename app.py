@@ -283,14 +283,15 @@ st.sidebar.caption(
 )
 
 # ---------------- TABS ----------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
     "🧠 SHAP Explainability",
     "📊 Analytics Dashboard",
     "🎮 Game Recommender",
-    "🧪 Model Diagnostics"
+    "🧪 Model Diagnostics",
+    "🎛️ What-If Simulator"
 ])
 
 # ============================================================
@@ -964,6 +965,82 @@ with tab7:
         f"{misclassified} / {total}",
         delta=f"{(misclassified/total)*100:.2f}% error"
     )
+# ============================================================
+# TAB 8 — WHAT-IF SIMULATOR
+# ============================================================
+with tab8:
+    st.subheader("🎛️ What-If Simulator")
+    st.caption("Interactively explore how regional sales affect predictions.")
+
+    # ---------- input sliders ----------
+    c1, c2 = st.columns(2)
+
+    with c1:
+        sim_na = st.slider("NA Sales (Sim)", 0.0, 10.0, 1.0, 0.1)
+        sim_eu = st.slider("EU Sales (Sim)", 0.0, 10.0, 1.0, 0.1)
+
+    with c2:
+        sim_jp = st.slider("JP Sales (Sim)", 0.0, 10.0, 0.5, 0.1)
+        sim_other = st.slider("Other Sales (Sim)", 0.0, 10.0, 0.3, 0.1)
+
+    # ---------- prediction ----------
+    sim_features = np.array([[sim_na, sim_eu, sim_jp, sim_other]])
+    sim_scaled = scaler.transform(sim_features)
+
+    sim_pred = model.predict(sim_scaled)[0]
+    sim_proba = model.predict_proba(sim_scaled)[0]
+
+    class_labels = ["Low", "Medium", "High"]
+
+    st.markdown("### 🔮 Simulated Prediction")
+
+    st.success(f"Predicted Class: **{class_labels[sim_pred]}**")
+
+    # =====================================================
+    # DECISION SWEEP (NA axis)
+    # =====================================================
+    st.markdown("### 📉 Decision Sensitivity Curve")
+
+    sweep_vals = np.linspace(0, 10, 60)
+    sweep_probs = []
+
+    for val in sweep_vals:
+        temp = np.array([[val, sim_eu, sim_jp, sim_other]])
+        temp_scaled = scaler.transform(temp)
+        sweep_probs.append(model.predict_proba(temp_scaled)[0][2])
+
+    sweep_df = pd.DataFrame({
+        "NA_Sales": sweep_vals,
+        "High_Sales_Prob": sweep_probs
+    })
+
+    fig_boundary = px.line(
+        sweep_df,
+        x="NA_Sales",
+        y="High_Sales_Prob",
+        title="How NA Sales influences High Sales probability"
+    )
+
+    st.plotly_chart(fig_boundary, use_container_width=True)
+
+    # =====================================================
+    # CLASS PROBABILITIES
+    # =====================================================
+    st.markdown("### 📊 Class Probabilities")
+
+    prob_df = pd.DataFrame({
+        "Class": class_labels,
+        "Probability": sim_proba
+    })
+
+    fig_prob_sim = px.bar(
+        prob_df,
+        x="Class",
+        y="Probability",
+        color="Probability"
+    )
+
+    st.plotly_chart(fig_prob_sim, use_container_width=True)
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("Built by HKS • Machine Learning • UI/UX")
