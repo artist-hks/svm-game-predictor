@@ -5,3 +5,5 @@ numpy
 joblib
 plotly
 shap
+seaborn
+matplotlib
