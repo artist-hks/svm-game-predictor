@@ -16,6 +16,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.preprocessing import label_binarize
+from sklearn.metrics import roc_curve, auc
 
 
 
@@ -313,6 +315,15 @@ with tab3:
     knn_cmp = KNeighborsClassifier(n_neighbors=7).fit(X_train_cmp, y_train_cmp)
     knn_time = time.perf_counter() - start
 
+    # probability predictions
+    svm_proba = svm_cmp.predict_proba(X_test_cmp)
+    nb_proba = nb_cmp.predict_proba(X_test_cmp)
+    knn_proba = knn_cmp.predict_proba(X_test_cmp)
+
+    # ----- Binarize labels for multi-class ROC -----
+    y_test_bin = label_binarize(y_test_cmp, classes=[0, 1, 2])
+    n_classes = y_test_bin.shape[1]
+
     # ----- Predictions -----
     preds = {
         "SVM": svm_cmp.predict(X_test_cmp),
@@ -360,6 +371,47 @@ with tab3:
         color="Training Time (s)"
     )
     st.plotly_chart(fig_time, use_container_width=True)
+
+    st.markdown("---")
+st.markdown("### 📈 ROC-AUC Comparison")
+
+fig_roc, ax = plt.subplots(figsize=(6, 5))
+
+models_proba = {
+    "SVM": svm_proba,
+    "Naive Bayes": nb_proba,
+    "KNN": knn_proba,
+}
+
+for name, proba_vals in models_proba.items():
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+
+    # compute ROC for each class then average
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(
+            y_test_bin[:, i],
+            proba_vals[:, i]
+        )
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    mean_auc = np.mean(list(roc_auc.values()))
+
+    # plot using class 1 curve for visual consistency
+    ax.plot(
+        fpr[1],
+        tpr[1],
+        label=f"{name} (AUC = {mean_auc:.3f})"
+    )
+
+    ax.plot([0, 1], [0, 1], linestyle="--")
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.set_title("ROC Curve Comparison")
+    ax.legend()
+
+    st.pyplot(fig_roc)
 
     st.markdown("---")
     st.markdown("### 🔥 Confusion Matrices")
