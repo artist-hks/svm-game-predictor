@@ -22,7 +22,9 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 
-
+# ---------- SESSION ANALYTICS ----------
+if "prediction_count" not in st.session_state:
+    st.session_state.prediction_count = 0
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -33,6 +35,13 @@ st.set_page_config(
 # ---------------- PREMIUM GLOBAL CSS ----------------
 st.markdown("""
 <style>
+:root {
+    --bg-main: #0b1220;
+    --card-bg: rgba(17, 25, 40, 0.75);
+    --accent-green: #22c55e;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
+}
 
 /* ---- Main container ---- */
 .block-container {
@@ -58,7 +67,7 @@ st.markdown("""
 .glass-card {
     padding: 22px;
     border-radius: 16px;
-    background: rgba(17, 25, 40, 0.75);
+    background: var(--card-bg);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -267,6 +276,10 @@ other_sales = st.sidebar.slider("Other Sales", 0.0, 10.0, 0.05, 0.05)
 
 features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
 features_scaled = scaler.transform(features)
+st.sidebar.markdown("---")
+st.sidebar.caption(
+    f"Session predictions: {st.session_state.prediction_count}"
+)
 
 # ---------------- TABS ----------------
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -301,6 +314,11 @@ with tab1:
         proba = model.predict_proba(features_scaled)[0]
         confidence = np.max(proba) * 100
 
+    st.session_state.prediction_count += 1
+        # ---------- CALIBRATION HINT ----------
+    entropy = -np.sum(proba * np.log(proba + 1e-9))
+    st.caption(f"Prediction certainty score: {1/(1+entropy):.3f}")
+
     text, color = labels[pred]
 
     # ---------- RESULT CARD ----------
@@ -329,32 +347,29 @@ with tab1:
 
     # ---------- PROBABILITY CHART ----------
     st.markdown("---")
-    # ---------- CONFIDENCE GAUGE ----------
+    # ---------- ANIMATED SPEEDOMETER ----------
     st.markdown("### 🎯 Confidence Meter")
 
-    gauge_fig = px.pie(
-        values=[confidence, 100 - confidence],
-        names=["Confidence", ""],
-        hole=0.75
-    )
+    gauge_speed = px.imshow([[confidence]], text_auto=False)
 
-    gauge_fig.update_traces(
-        textinfo="none",
-        marker=dict(colors=["#22c55e", "#1f2937"])
-    )
-
-    gauge_fig.update_layout(
-        showlegend=False,
-        height=260,
-        margin=dict(t=10, b=10, l=10, r=10),
-        annotations=[dict(
-            text=f"{confidence:.1f}%",
-            x=0.5,
-            y=0.5,
-            font_size=28,
-            showarrow=False
-        )]
-    )
+    gauge_fig = {
+        "data": [{
+            "type": "indicator",
+            "mode": "gauge+number",
+            "value": confidence,
+            "number": {"suffix": "%"},
+            "gauge": {
+                "axis": {"range": [0, 100]},
+                "bar": {"color": "#22c55e"},
+                "bgcolor": "#111827",
+                "steps": [
+                    {"range": [0, 40], "color": "#7f1d1d"},
+                    {"range": [40, 70], "color": "#78350f"},
+                    {"range": [70, 100], "color": "#052e16"},
+                ],
+            },
+        }]
+    }
 
     st.plotly_chart(gauge_fig, use_container_width=True)
     st.subheader("🎯 Prediction Probabilities")
@@ -381,6 +396,32 @@ with tab1:
     for cls, prob in zip(class_names, proba):
         st.progress(float(prob))
         st.caption(f"{cls}: {prob:.2%}")
+
+    # ---------- INPUT SENSITIVITY ----------
+    st.markdown("### 🧪 Input Sensitivity (NA Sales Sweep)")
+
+    sweep_vals = np.linspace(0, 10, 40)
+
+    sweep_data = []
+    for val in sweep_vals:
+        temp = np.array([[val, eu_sales, jp_sales, other_sales]])
+        temp_scaled = scaler.transform(temp)
+        prob_high = model.predict_proba(temp_scaled)[0][2]
+        sweep_data.append(prob_high)
+
+    sweep_df = pd.DataFrame({
+        "NA_Sales": sweep_vals,
+        "High_Sales_Prob": sweep_data
+    })
+
+    fig_sweep = px.line(
+        sweep_df,
+        x="NA_Sales",
+        y="High_Sales_Prob",
+        title="Sensitivity of High Sales Probability vs NA Sales"
+    )
+
+    st.plotly_chart(fig_sweep, use_container_width=True)
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
