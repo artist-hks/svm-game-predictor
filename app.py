@@ -182,33 +182,46 @@ with tab4:
     st.caption("Local explanation of the current prediction")
 
     try:
-        # --- create small background (FAST) ---
-        background = np.zeros((50, 4))
+        # ---------- safe background ----------
+        background = np.zeros((20, 4))
 
-        # --- cached explainer ---
         @st.cache_resource
         def get_explainer():
             return shap.KernelExplainer(model.predict_proba, background)
 
         explainer = get_explainer()
 
-        # --- compute shap (LIMITED samples for speed) ---
+        # ---------- compute shap ----------
         shap_values = explainer.shap_values(features_scaled, nsamples=50)
 
-        # --- plot as bar (STREAMLIT SAFE) ---
-        st.subheader("Feature Impact")
+        # ---------- handle multiclass safely ----------
+        # shap_values is list for multiclass
+        if isinstance(shap_values, list):
+            # take predicted class explanation
+            class_idx = int(pred)
+            shap_for_class = shap_values[class_idx][0]
+        else:
+            shap_for_class = shap_values[0]
+
+        feature_names = ["NA", "EU", "JP", "Other"]
+
+        # ---------- ensure same length ----------
+        shap_for_class = np.array(shap_for_class).flatten()
+
+        min_len = min(len(feature_names), len(shap_for_class))
 
         shap_df = pd.DataFrame({
-            "Feature": ["NA", "EU", "JP", "Other"],
-            "Impact": np.abs(shap_values[0][0])
+            "Feature": feature_names[:min_len],
+            "Impact": np.abs(shap_for_class[:min_len])
         }).sort_values("Impact", ascending=False)
+
+        st.subheader("Feature Impact")
 
         fig_shap = px.bar(
             shap_df,
             x="Feature",
             y="Impact",
-            color="Impact",
-            title="SHAP Feature Impact"
+            color="Impact"
         )
 
         st.plotly_chart(fig_shap, use_container_width=True)
