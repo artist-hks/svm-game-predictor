@@ -18,6 +18,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.preprocessing import label_binarize
+from xgboost import XGBClassifier
 
 
 
@@ -97,6 +98,45 @@ df_games = load_dataset()
 # ---------------- MODEL COMPARISON DATA ----------------
 @st.cache_resource
 def train_comparison_models(X_train, y_train):
+    import time
+    from sklearn.svm import SVC
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.neighbors import KNeighborsClassifier
+    from xgboost import XGBClassifier
+
+    timings = {}
+
+    # ---------- SVM ----------
+    start = time.perf_counter()
+    svm = SVC(probability=True).fit(X_train, y_train)
+    timings["SVM"] = time.perf_counter() - start
+
+    # ---------- Naive Bayes ----------
+    start = time.perf_counter()
+    nb = GaussianNB().fit(X_train, y_train)
+    timings["Naive Bayes"] = time.perf_counter() - start
+
+    # ---------- KNN ----------
+    start = time.perf_counter()
+    knn = KNeighborsClassifier(n_neighbors=7).fit(X_train, y_train)
+    timings["KNN"] = time.perf_counter() - start
+
+    # ---------- XGBoost (NEW WEAPON) ----------
+    start = time.perf_counter()
+    xgb = XGBClassifier(
+        n_estimators=200,
+        max_depth=5,
+        learning_rate=0.05,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        eval_metric="mlogloss",
+        use_label_encoder=False,
+        random_state=42
+    )
+    xgb.fit(X_train, y_train)
+    timings["XGBoost"] = time.perf_counter() - start
+
+    return svm, nb, knn, xgb, timings
     import time
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
@@ -319,7 +359,7 @@ with tab3:
     from sklearn.neighbors import KNeighborsClassifier
 
     # ----- Train models with timing -----
-    svm_cmp, nb_cmp, knn_cmp, timings = train_comparison_models(
+    svm_cmp, nb_cmp, knn_cmp, xgb_cmp, timings = train_comparison_models(
     X_train_cmp, y_train_cmp
     )
 
@@ -342,6 +382,7 @@ with tab3:
         "SVM": svm_cmp.predict(X_test_cmp),
         "Naive Bayes": nb_cmp.predict(X_test_cmp),
         "KNN": knn_cmp.predict(X_test_cmp),
+        "XGBoost": xgb_cmp.predict(X_test_cmp),
     }
 
     # ----- Accuracy table -----
@@ -360,6 +401,11 @@ with tab3:
         "Model": "KNN",
         "Accuracy": accuracy_score(y_test_cmp, knn_cmp.predict(X_test_cmp)),
         "Training Time (s)": knn_time
+    },
+    {
+    "Model": "XGBoost",
+    "Accuracy": accuracy_score(y_test_cmp, xgb_cmp.predict(X_test_cmp)),
+    "Training Time (s)": timings["XGBoost"]
     },
     ]
 
