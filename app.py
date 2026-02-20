@@ -95,23 +95,37 @@ def load_assets():
     base_model = joblib.load("svm_model.pkl")
     scaler = joblib.load("scaler.pkl")
 
-    # ---------- calibrated wrapper ----------
+    # ---------- proper prefit calibration ----------
     calibrated_model = CalibratedClassifierCV(
         base_model,
         method="sigmoid",
-        cv=3
+        cv="prefit"
     )
 
-    # tiny synthetic fit to initialize (safe workaround)
-    dummy_X = np.random.rand(50, 4)
-    dummy_y = base_model.predict(dummy_X)
+    # use REAL data sample for calibration
+    df = pd.read_csv("vgsales.csv").dropna(subset=[
+        "NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"
+    ])
 
-    calibrated_model.fit(dummy_X, dummy_y)
+    # recreate same target logic
+    df["Sales_Class"] = pd.qcut(
+        df["Global_Sales"],
+        q=3,
+        labels=[0, 1, 2]
+    ).astype(int)
+
+    X_cal = df[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]]
+    y_cal = df["Sales_Class"]
+
+    # small sample for speed
+    X_cal_sample = X_cal.sample(500, random_state=42)
+    y_cal_sample = y_cal.loc[X_cal_sample.index]
+
+    X_cal_scaled = scaler.transform(X_cal_sample)
+
+    calibrated_model.fit(X_cal_scaled, y_cal_sample)
 
     return base_model, calibrated_model, scaler
-    model = joblib.load("svm_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-    return model, scaler
 
 model, calibrated_model, scaler = load_assets()
 
