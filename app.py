@@ -55,7 +55,7 @@ proba = model.predict_proba(features_scaled)[0]
 confidence = np.max(proba) * 100
 
 # ---------------- TABS ----------------
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5= st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
