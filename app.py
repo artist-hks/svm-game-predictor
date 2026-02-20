@@ -6,6 +6,7 @@ import plotly.express as px
 import shap
 import seaborn as sns
 import matplotlib.pyplot as plt
+import time
 
 from sklearn.inspection import permutation_importance
 from sklearn.naive_bayes import GaussianNB
@@ -295,10 +296,22 @@ with tab3:
     from sklearn.naive_bayes import GaussianNB
     from sklearn.neighbors import KNeighborsClassifier
 
-    # ----- Train models -----
+    # ----- Train models with timing -----
+
+    # SVM
+    start = time.perf_counter()
     svm_cmp = SVC(probability=True).fit(X_train_cmp, y_train_cmp)
+    svm_time = time.perf_counter() - start
+
+    # Naive Bayes
+    start = time.perf_counter()
     nb_cmp = GaussianNB().fit(X_train_cmp, y_train_cmp)
+    nb_time = time.perf_counter() - start
+
+    # KNN
+    start = time.perf_counter()
     knn_cmp = KNeighborsClassifier(n_neighbors=7).fit(X_train_cmp, y_train_cmp)
+    knn_time = time.perf_counter() - start
 
     # ----- Predictions -----
     preds = {
@@ -308,12 +321,23 @@ with tab3:
     }
 
     # ----- Accuracy table -----
-    acc_data = []
-    for name, p in preds.items():
-        acc_data.append({
-            "Model": name,
-            "Accuracy": accuracy_score(y_test_cmp, p)
-        })
+    acc_data = [
+    {
+        "Model": "SVM",
+        "Accuracy": accuracy_score(y_test_cmp, svm_cmp.predict(X_test_cmp)),
+        "Training Time (s)": svm_time
+    },
+    {
+        "Model": "Naive Bayes",
+        "Accuracy": accuracy_score(y_test_cmp, nb_cmp.predict(X_test_cmp)),
+        "Training Time (s)": nb_time
+    },
+    {
+        "Model": "KNN",
+        "Accuracy": accuracy_score(y_test_cmp, knn_cmp.predict(X_test_cmp)),
+        "Training Time (s)": knn_time
+    },
+    ]
 
     acc_df = pd.DataFrame(acc_data)
 
@@ -326,6 +350,16 @@ with tab3:
         color="Accuracy"
     )
     st.plotly_chart(fig_acc, use_container_width=True)
+
+    st.markdown("### ⏱️ Training Time Comparison")
+
+    fig_time = px.bar(
+        acc_df,
+        x="Model",
+        y="Training Time (s)",
+        color="Training Time (s)"
+    )
+    st.plotly_chart(fig_time, use_container_width=True)
 
     st.markdown("---")
     st.markdown("### 🔥 Confusion Matrices")
