@@ -446,7 +446,7 @@ with tab3:
     st.markdown("---")
     st.markdown("### 🔥 Confusion Matrices")
 
-    cols = st.columns(3)
+    cols = st.columns(len(preds))
 
     for i, (name, p) in enumerate(preds.items()):
         cm = confusion_matrix(y_test_cmp, p)
