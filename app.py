@@ -293,20 +293,6 @@ with tab2:
 # ============================================================
 with tab3:
     st.subheader("📊 Real Model Comparison")
-    acc_df = pd.DataFrame(acc_data)
-
-    # ---------- SUMMARY CARDS ----------
-    best_acc_model = acc_df.sort_values("Accuracy", ascending=False).iloc[0]["Model"]
-    fastest_model = acc_df.sort_values("Training Time (s)").iloc[0]["Model"]
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-        st.success(f"🏆 Most Accurate Model: **{best_acc_model}**")
-
-    with c2:
-        st.info(f"⚡ Fastest Training Model: **{fastest_model}**")
-
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
     from sklearn.neighbors import KNeighborsClassifier
@@ -364,6 +350,18 @@ with tab3:
     ]
 
     acc_df = pd.DataFrame(acc_data)
+
+    # ---------- SUMMARY CARDS ----------
+    best_acc_model = acc_df.sort_values("Accuracy", ascending=False).iloc[0]["Model"]
+    fastest_model = acc_df.sort_values("Training Time (s)").iloc[0]["Model"]
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.success(f"🏆 Most Accurate Model: **{best_acc_model}**")
+
+    with c2:
+        st.info(f"⚡ Fastest Training Model: **{fastest_model}**")
 
     st.markdown("### 🏆 Accuracy Comparison")
 
