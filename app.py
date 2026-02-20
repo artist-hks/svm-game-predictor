@@ -19,6 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.preprocessing import label_binarize
 from xgboost import XGBClassifier
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 
 
@@ -96,6 +97,42 @@ def load_dataset():
 df_games = load_dataset()
 
 # ---------------- MODEL COMPARISON DATA ----------------
+@st.cache_resource
+def compute_cv_scores(X, y):
+    from sklearn.svm import SVC
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.neighbors import KNeighborsClassifier
+    from xgboost import XGBClassifier
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    models = {
+        "SVM": SVC(probability=True),
+        "Naive Bayes": GaussianNB(),
+        "KNN": KNeighborsClassifier(n_neighbors=7),
+        "XGBoost": XGBClassifier(
+            n_estimators=200,
+            max_depth=5,
+            learning_rate=0.05,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            eval_metric="mlogloss",
+            use_label_encoder=False,
+            random_state=42
+        )
+    }
+
+    results = {}
+
+    for name, model in models.items():
+        scores = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
+        results[name] = {
+            "mean": scores.mean(),
+            "std": scores.std()
+        }
+
+    return results
 @st.cache_resource
 def train_comparison_models(X_train, y_train):
     import time
@@ -354,6 +391,10 @@ with tab2:
 # ============================================================
 with tab3:
     st.subheader("📊 Real Model Comparison")
+    cv_results = compute_cv_scores(
+    X_train_cmp.append(X_test_cmp),
+    y_train_cmp.append(y_test_cmp)
+    )
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
     from sklearn.neighbors import KNeighborsClassifier
@@ -432,6 +473,28 @@ with tab3:
         color="Accuracy"
     )
     st.plotly_chart(fig_acc, use_container_width=True)
+
+    st.markdown("### 🧪 Cross-Validation Stability")
+
+    cv_df = pd.DataFrame([
+        {
+            "Model": name,
+            "CV Mean Accuracy": vals["mean"],
+            "CV Std": vals["std"]
+        }
+        for name, vals in cv_results.items()
+    ])
+
+    fig_cv = px.bar(
+        cv_df,
+        x="Model",
+        y="CV Mean Accuracy",
+        error_y="CV Std",
+        color="CV Mean Accuracy",
+        title="5-Fold Stratified CV Accuracy"
+    )
+
+    st.plotly_chart(fig_cv, use_container_width=True)
 
     st.markdown("### ⏱️ Training Time Comparison")
 
