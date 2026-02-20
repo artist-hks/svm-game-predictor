@@ -22,6 +22,7 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import roc_curve, auc, precision_score, recall_score
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.tree import DecisionTreeClassifier
 
 
 # ---------- SESSION ANALYTICS ----------
@@ -175,6 +176,10 @@ def compute_cv_scores(X, y):
         "SVM": SVC(probability=True),
         "Naive Bayes": GaussianNB(),
         "KNN": KNeighborsClassifier(n_neighbors=7),
+        "Decision Tree": DecisionTreeClassifier(
+            max_depth=5,
+            random_state=42
+        ),
         "XGBoost": XGBClassifier(
             n_estimators=200,
             max_depth=5,
@@ -222,6 +227,14 @@ def train_comparison_models(X_train, y_train):
     knn = KNeighborsClassifier(n_neighbors=7).fit(X_train, y_train)
     timings["KNN"] = time.perf_counter() - start
 
+        # ---------- Decision Tree ----------
+    start = time.perf_counter()
+    dt = DecisionTreeClassifier(
+        max_depth=5,
+        random_state=42
+    ).fit(X_train, y_train)
+    timings["Decision Tree"] = time.perf_counter() - start
+
     # ---------- XGBoost (NEW WEAPON) ----------
     start = time.perf_counter()
     xgb = XGBClassifier(
@@ -237,7 +250,7 @@ def train_comparison_models(X_train, y_train):
     xgb.fit(X_train, y_train)
     timings["XGBoost"] = time.perf_counter() - start
 
-    return svm, nb, knn, xgb, timings
+    return svm, nb, knn, dt, xgb, timings
     import time
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
@@ -542,20 +555,23 @@ with tab3:
     from sklearn.neighbors import KNeighborsClassifier
 
     # ----- Train models with timing -----
-    svm_cmp, nb_cmp, knn_cmp, xgb_cmp, timings = train_comparison_models(
+    svm_cmp, nb_cmp, knn_cmp, dt_cmp, xgb_cmp, timings = train_comparison_models(
     X_train_cmp, y_train_cmp
     )
 
     svm_time = timings["SVM"]
     nb_time = timings["Naive Bayes"]
     knn_time = timings["KNN"]
+    dt_time = timings["Decision Tree"]
+    xgb_time = timings["XGBoost"]
 
     
     # probability predictions
     svm_proba = svm_cmp.predict_proba(X_test_cmp)
     nb_proba = nb_cmp.predict_proba(X_test_cmp)
     knn_proba = knn_cmp.predict_proba(X_test_cmp)
-
+    dt_proba = dt_cmp.predict_proba(X_test_cmp)
+    xgb_proba = xgb_cmp.predict_proba(X_test_cmp)
     # ----- Binarize labels for multi-class ROC -----
     y_test_bin = label_binarize(y_test_cmp, classes=[0, 1, 2])
     n_classes = y_test_bin.shape[1]
@@ -565,6 +581,7 @@ with tab3:
         "SVM": svm_cmp.predict(X_test_cmp),
         "Naive Bayes": nb_cmp.predict(X_test_cmp),
         "KNN": knn_cmp.predict(X_test_cmp),
+        "Decision Tree": dt_cmp.predict(X_test_cmp),
         "XGBoost": xgb_cmp.predict(X_test_cmp),
     }
 
@@ -935,6 +952,7 @@ with tab7:
         "SVM": svm_cmp,
         "Naive Bayes": nb_cmp,
         "KNN": knn_cmp,
+        "Decision Tree": dt_cmp,
         "XGBoost": xgb_cmp
     }
 
