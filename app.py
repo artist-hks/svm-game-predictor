@@ -146,6 +146,19 @@ def load_dataset():
     return df
 
 df_games = load_dataset()
+# ---------- DRIFT BASELINE ----------
+@st.cache_data
+def compute_training_baseline(df):
+    base = df[[
+        "NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"
+    ]].dropna()
+
+    return {
+        "mean": base.mean(),
+        "std": base.std()
+    }
+
+drift_baseline = compute_training_baseline(df_games)
 
 # ---------------- MODEL COMPARISON DATA ----------------
 @st.cache_resource
@@ -329,7 +342,7 @@ st.sidebar.caption(
 )
 
 # ---------------- TABS ----------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
@@ -337,7 +350,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Analytics Dashboard",
     "🎮 Game Recommender",
     "🧪 Model Diagnostics",
-    "🎛️ What-If Simulator"
+    "🎛️ What-If Simulator",
+    "🧭 Drift Monitor"
 ])
 
 # ============================================================
@@ -1089,6 +1103,74 @@ with tab8:
     )
 
     st.plotly_chart(fig_prob_sim, use_container_width=True)
+
+# ============================================================
+# TAB 9 — DRIFT MONITOR
+# ============================================================
+with tab9:
+    st.subheader("🧭 Model Drift Monitor")
+    st.caption("Compare live inputs against training distribution.")
+
+    # ---------- current input vector ----------
+    current_input = pd.Series({
+        "NA_Sales": na_sales,
+        "EU_Sales": eu_sales,
+        "JP_Sales": jp_sales,
+        "Other_Sales": other_sales
+    })
+
+    baseline_mean = drift_baseline["mean"]
+    baseline_std = drift_baseline["std"]
+
+    # ---------- z-score drift ----------
+    drift_scores = ((current_input - baseline_mean) / (baseline_std + 1e-6)).abs()
+
+    drift_df = pd.DataFrame({
+        "Feature": drift_scores.index,
+        "Drift Score (|z|)": drift_scores.values
+    }).sort_values("Drift Score (|z|)", ascending=False)
+
+    # =====================================================
+    # DRIFT BAR CHART
+    # =====================================================
+    st.markdown("### 📊 Feature Drift Scores")
+
+    fig_drift = px.bar(
+        drift_df,
+        x="Feature",
+        y="Drift Score (|z|)",
+        color="Drift Score (|z|)",
+        title="Current Input vs Training Distribution"
+    )
+
+    st.plotly_chart(fig_drift, use_container_width=True)
+
+    # =====================================================
+    # HEALTH STATUS
+    # =====================================================
+    max_drift = drift_scores.max()
+
+    st.markdown("### 🚨 Drift Health Status")
+
+    if max_drift < 1:
+        st.success("✅ Input is within normal training range.")
+    elif max_drift < 2.5:
+        st.warning("⚠️ Moderate drift detected. Monitor recommended.")
+    else:
+        st.error("🚨 High drift! Model may be unreliable.")
+
+    # =====================================================
+    # RAW COMPARISON TABLE
+    # =====================================================
+    st.markdown("### 🔍 Detailed Comparison")
+
+    compare_df = pd.DataFrame({
+        "Current": current_input,
+        "Training Mean": baseline_mean,
+        "Training Std": baseline_std
+    })
+
+    st.dataframe(compare_df, use_container_width=True)
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("Built by HKS • Machine Learning • UI/UX")
