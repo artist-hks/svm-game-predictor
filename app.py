@@ -292,7 +292,7 @@ with tab1:
     st.caption("Adjust regional sales from the sidebar to explore predictions.")
 
     # ---------- HEAVY COMPUTATION WITH SPINNER ----------
-    with st.spinner("Analyzing game sales pattern..."):
+    with st.spinner("Running ML inference..."):
 
         features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
         features_scaled = scaler.transform(features)
@@ -329,6 +329,34 @@ with tab1:
 
     # ---------- PROBABILITY CHART ----------
     st.markdown("---")
+    # ---------- CONFIDENCE GAUGE ----------
+    st.markdown("### 🎯 Confidence Meter")
+
+    gauge_fig = px.pie(
+        values=[confidence, 100 - confidence],
+        names=["Confidence", ""],
+        hole=0.75
+    )
+
+    gauge_fig.update_traces(
+        textinfo="none",
+        marker=dict(colors=["#22c55e", "#1f2937"])
+    )
+
+    gauge_fig.update_layout(
+        showlegend=False,
+        height=260,
+        margin=dict(t=10, b=10, l=10, r=10),
+        annotations=[dict(
+            text=f"{confidence:.1f}%",
+            x=0.5,
+            y=0.5,
+            font_size=28,
+            showarrow=False
+        )]
+    )
+
+    st.plotly_chart(gauge_fig, use_container_width=True)
     st.subheader("🎯 Prediction Probabilities")
 
     prob_df = pd.DataFrame({
@@ -345,6 +373,14 @@ with tab1:
     )
     fig_prob.update_traces(texttemplate="%{text:.2f}", textposition="outside")
     st.plotly_chart(fig_prob, use_container_width=True)
+    # ---------- PROBABILITY PROGRESS BARS ----------
+    st.markdown("### 📊 Class Confidence Breakdown")
+
+    class_names = ["Low", "Medium", "High"]
+
+    for cls, prob in zip(class_names, proba):
+        st.progress(float(prob))
+        st.caption(f"{cls}: {prob:.2%}")
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
@@ -730,7 +766,8 @@ with tab6:
     )
 
     if len(top_games) == 0:
-        st.warning("No games found for selected filters.")
+        st.warning("No games match the current filters.")
+        st.caption("Try widening platform, genre, or year range.")
     else:
         st.dataframe(top_games, use_container_width=True)
     st.markdown("---")
