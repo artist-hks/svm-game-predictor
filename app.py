@@ -21,6 +21,7 @@ from sklearn.preprocessing import label_binarize
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import roc_curve, auc, precision_score, recall_score
+from sklearn.calibration import CalibratedClassifierCV
 
 
 # ---------- SESSION ANALYTICS ----------
@@ -91,11 +92,28 @@ st.markdown("""
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_assets():
+    base_model = joblib.load("svm_model.pkl")
+    scaler = joblib.load("scaler.pkl")
+
+    # ---------- calibrated wrapper ----------
+    calibrated_model = CalibratedClassifierCV(
+        base_model,
+        method="sigmoid",
+        cv=3
+    )
+
+    # tiny synthetic fit to initialize (safe workaround)
+    dummy_X = np.random.rand(50, 4)
+    dummy_y = base_model.predict(dummy_X)
+
+    calibrated_model.fit(dummy_X, dummy_y)
+
+    return base_model, calibrated_model, scaler
     model = joblib.load("svm_model.pkl")
     scaler = joblib.load("scaler.pkl")
     return model, scaler
 
-model, scaler = load_assets()
+model, calibrated_model, scaler = load_assets()
 
 # ----- LOAD DATASET  -----
 @st.cache_data
@@ -275,6 +293,11 @@ eu_sales = st.sidebar.slider("EU Sales", 0.0, 10.0, 0.3, 0.1)
 jp_sales = st.sidebar.slider("JP Sales", 0.0, 10.0, 0.1, 0.1)
 other_sales = st.sidebar.slider("Other Sales", 0.0, 10.0, 0.05, 0.05)
 
+use_calibrated = st.sidebar.toggle(
+    "Use calibrated probabilities",
+    value=True
+)
+
 features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
 features_scaled = scaler.transform(features)
 st.sidebar.markdown("---")
@@ -313,8 +336,10 @@ with tab1:
         features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
         features_scaled = scaler.transform(features)
 
-        pred = model.predict(features_scaled)[0]
-        proba = model.predict_proba(features_scaled)[0]
+        active_model = calibrated_model if use_calibrated else model
+
+        pred = active_model.predict(features_scaled)[0]
+        proba = active_model.predict_proba(features_scaled)[0]
         confidence = np.max(proba) * 100
 
     st.session_state.prediction_count += 1
