@@ -121,6 +121,7 @@ def prepare_similarity_engine(df):
 
 sim_games, nn_model = prepare_similarity_engine(df_games)
 # ---------------- HEADER ----------------
+st.toast("Model ready", icon="🤖")
 st.markdown('<div class="main-header">🎮 Video Game Sales Intelligence</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Predict • Analyze • Recommend</div>', unsafe_allow_html=True)
 
@@ -163,6 +164,7 @@ with tab1:
         1: ("📊 Medium Sales", "#f59e0b"),
         2: ("🚀 High Sales", "#22c55e")
     }
+    st.caption("Adjust regional sales from the sidebar to explore predictions.")
 
     # ---------- HEAVY COMPUTATION WITH SPINNER ----------
     with st.spinner("Analyzing game sales pattern..."):
@@ -543,4 +545,5 @@ with tab6:
     st.plotly_chart(fig_top, use_container_width=True)
 
 # ---------------- FOOTER ----------------
-st.caption("Built by HKS • ML + UI/UX • Advanced Edition")
+st.markdown("---")
+st.caption("Built by HKS • Machine Learning • UI/UX")
