@@ -372,8 +372,11 @@ with tab3:
     )
     st.plotly_chart(fig_time, use_container_width=True)
     st.markdown("---")
-    st.markdown("### 📈 ROC-AUC Comparison")
+st.markdown("### 📈 ROC-AUC Comparison")
 
+roc_col, info_col = st.columns([2, 1])
+
+with roc_col:
     fig_roc, ax = plt.subplots(figsize=(5, 4))
 
     models_proba = {
@@ -381,6 +384,8 @@ with tab3:
         "Naive Bayes": nb_proba,
         "KNN": knn_proba,
     }
+
+    auc_summary = {}
 
     for name, proba_vals in models_proba.items():
         fpr = dict()
@@ -395,6 +400,7 @@ with tab3:
             roc_auc[i] = auc(fpr[i], tpr[i])
 
         mean_auc = np.mean(list(roc_auc.values()))
+        auc_summary[name] = mean_auc
 
         ax.plot(
             fpr[1],
@@ -402,13 +408,28 @@ with tab3:
             label=f"{name} (AUC = {mean_auc:.3f})"
         )
 
-    ax.plot([0, 1], [0, 1], linestyle="--")
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
-    ax.set_title("ROC Curve Comparison")
-    ax.legend(fontsize=8)
+        ax.plot([0, 1], [0, 1], linestyle="--")
+        ax.set_xlabel("False Positive Rate")
+        ax.set_ylabel("True Positive Rate")
+        ax.set_title("ROC Curve Comparison")
+        ax.legend(fontsize=8)
+        plt.tight_layout()
 
-    st.pyplot(fig_roc, use_container_width=False)
+        st.pyplot(fig_roc, use_container_width=False)
+
+    with info_col:
+        st.markdown("#### 🧠 Model AUC Scores")
+
+        auc_df = pd.DataFrame({
+            "Model": list(auc_summary.keys()),
+            "AUC": list(auc_summary.values())
+        }).sort_values("AUC", ascending=False)
+
+        st.dataframe(auc_df, use_container_width=True)
+
+        best_model = auc_df.iloc[0]["Model"]
+        st.success(f"🏆 Best ROC performance: **{best_model}**")
+    
 
     st.markdown("---")
     st.markdown("### 🔥 Confusion Matrices")
