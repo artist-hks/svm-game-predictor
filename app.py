@@ -1,3 +1,4 @@
+from numpy.random.mtrand import sample
 import streamlit as st
 import numpy as np
 import joblib
@@ -94,6 +95,28 @@ def load_dataset():
 df_games = load_dataset()
 
 # ---------------- MODEL COMPARISON DATA ----------------
+@st.cache_resource
+def train_comparison_models(X_train, y_train):
+    import time
+    from sklearn.svm import SVC
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.neighbors import KNeighborsClassifier
+
+    timings = {}
+
+    start = time.perf_counter()
+    svm = SVC(probability=True).fit(X_train, y_train)
+    timings["SVM"] = time.perf_counter() - start
+
+    start = time.perf_counter()
+    nb = GaussianNB().fit(X_train, y_train)
+    timings["Naive Bayes"] = time.perf_counter() - start
+
+    start = time.perf_counter()
+    knn = KNeighborsClassifier(n_neighbors=7).fit(X_train, y_train)
+    timings["KNN"] = time.perf_counter() - start
+
+    return svm, nb, knn, timings
 @st.cache_data
 def prepare_model_data(df):
     temp = df.dropna(subset=[
@@ -167,10 +190,6 @@ other_sales = st.sidebar.slider("Other Sales", 0.0, 10.0, 0.05, 0.05)
 
 features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
 features_scaled = scaler.transform(features)
-
-pred = model.predict(features_scaled)[0]
-proba = model.predict_proba(features_scaled)[0]
-confidence = np.max(proba) * 100
 
 # ---------------- TABS ----------------
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -259,9 +278,11 @@ with tab2:
 
     # dummy small sample for speed
     try:
-        X_sample = scaler.transform(
-            np.random.rand(200, 4)
-        )
+        sample_df = df_games[
+        ["NA_Sales","EU_Sales","JP_Sales","Other_Sales"]
+        ].dropna().sample(300, random_state=42)
+
+        X_sample = scaler.transform(sample_df)
         y_sample = model.predict(X_sample)
 
         perm = permutation_importance(
@@ -298,22 +319,15 @@ with tab3:
     from sklearn.neighbors import KNeighborsClassifier
 
     # ----- Train models with timing -----
+    svm_cmp, nb_cmp, knn_cmp, timings = train_comparison_models(
+    X_train_cmp, y_train_cmp
+    )
 
-    # SVM
-    start = time.perf_counter()
-    svm_cmp = SVC(probability=True).fit(X_train_cmp, y_train_cmp)
-    svm_time = time.perf_counter() - start
+    svm_time = timings["SVM"]
+    nb_time = timings["Naive Bayes"]
+    knn_time = timings["KNN"]
 
-    # Naive Bayes
-    start = time.perf_counter()
-    nb_cmp = GaussianNB().fit(X_train_cmp, y_train_cmp)
-    nb_time = time.perf_counter() - start
-
-    # KNN
-    start = time.perf_counter()
-    knn_cmp = KNeighborsClassifier(n_neighbors=7).fit(X_train_cmp, y_train_cmp)
-    knn_time = time.perf_counter() - start
-
+    
     # probability predictions
     svm_proba = svm_cmp.predict_proba(X_test_cmp)
     nb_proba = nb_cmp.predict_proba(X_test_cmp)
@@ -407,10 +421,17 @@ with tab4:
     st.caption("Local explanation of the current prediction")
 
     try:
-        # ---------- safe background ----------
-        background = np.zeros((20, 4))
-
+        
         @st.cache_resource
+        @st.cache_data
+        def get_shap_background(df):
+            sample = df[
+        ["NA_Sales","EU_Sales","JP_Sales","Other_Sales"]
+        ].dropna().sample(50, random_state=42)
+
+            return scaler.transform(sample)
+
+        background = get_shap_background(df_games)
         def get_explainer():
             return shap.KernelExplainer(model.predict_proba, background)
 
