@@ -19,6 +19,53 @@ st.set_page_config(
     page_icon="🎮",
     layout="wide"
 )
+# ---------------- PREMIUM GLOBAL CSS ----------------
+st.markdown("""
+<style>
+
+/* ---- Main container ---- */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* ---- Header ---- */
+.main-header {
+    font-size: 44px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.2em;
+}
+
+.sub-header {
+    text-align: center;
+    color: #9aa0a6;
+    margin-bottom: 2em;
+}
+
+/* ---- Glass cards ---- */
+.glass-card {
+    padding: 22px;
+    border-radius: 16px;
+    background: rgba(17, 25, 40, 0.75);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Metric number ---- */
+.metric-big {
+    font-size: 32px;
+    font-weight: 700;
+}
+
+/* ---- Section spacing ---- */
+.section-gap {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
@@ -74,10 +121,13 @@ def prepare_similarity_engine(df):
 
 sim_games, nn_model = prepare_similarity_engine(df_games)
 # ---------------- HEADER ----------------
-st.title("🎮 Video Game Sales Predictor Pro")
-st.caption("Advanced ML dashboard with explainability")
+st.markdown('<div class="main-header">🎮 Video Game Sales Intelligence</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Predict • Analyze • Recommend</div>', unsafe_allow_html=True)
 
 # ---------------- SIDEBAR (REAL-TIME SLIDERS) ----------------
+st.sidebar.markdown("## ⚙️ Control Panel")
+st.sidebar.caption("Adjust inputs and explore insights")
+st.sidebar.divider()
 st.sidebar.header("🎯 Regional Sales Input")
 
 na_sales = st.sidebar.slider("NA Sales", 0.0, 10.0, 0.5, 0.1)
@@ -147,6 +197,13 @@ with tab1:
     )
     fig_prob.update_traces(texttemplate="%{text:.2f}", textposition="outside")
     st.plotly_chart(fig_prob, use_container_width=True)
+    confidence = np.max(proba) * 100
+    # ---------- KPI METRICS ----------
+    k1, k2, k3 = st.columns(3)
+
+    k1.metric("Predicted Class", text.replace("📉 ", "").replace("📊 ", "").replace("🚀 ", ""))
+    k2.metric("Confidence", f"{confidence:.2f}%")
+    k3.metric("Total Input Sales", f"{na_sales+eu_sales+jp_sales+other_sales:.2f}")
 
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
