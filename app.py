@@ -391,10 +391,10 @@ with tab2:
 # ============================================================
 with tab3:
     st.subheader("📊 Real Model Comparison")
-    cv_results = compute_cv_scores(
-    X_train_cmp.append(X_test_cmp),
-    y_train_cmp.append(y_test_cmp)
-    )
+    X_full = pd.concat([X_train_cmp, X_test_cmp], axis=0)
+    y_full = pd.concat([y_train_cmp, y_test_cmp], axis=0)
+
+    cv_results = compute_cv_scores(X_full, y_full)
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
     from sklearn.neighbors import KNeighborsClassifier
