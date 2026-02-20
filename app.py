@@ -45,25 +45,80 @@ st.markdown("""
     --accent-orange: #f59e0b;
     --accent-red: #ef4444;
 }
-/* ---- Netflix Hero Header ---- */
+            /* ---- Animated Gradient Glow ---- */
 .hero-container {
     position: relative;
-    padding: 28px 32px;
-    border-radius: 20px;
+    padding: 30px 34px;
+    border-radius: 22px;
     background: linear-gradient(135deg, #020617 0%, #0f172a 60%, #020617 100%);
     border: 1px solid rgba(255,255,255,0.08);
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.4rem;
 }
 
 .hero-container::before {
     content: "";
     position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 20% 30%, rgba(34,197,94,0.18), transparent 40%),
-                radial-gradient(circle at 80% 70%, rgba(59,130,246,0.15), transparent 40%);
-    pointer-events: none;
+    inset: -2px;
+    background: linear-gradient(
+        120deg,
+        rgba(34,197,94,0.25),
+        rgba(59,130,246,0.25),
+        rgba(168,85,247,0.25),
+        rgba(34,197,94,0.25)
+    );
+    filter: blur(38px);
+    opacity: 0.55;
+    animation: heroGlow 8s linear infinite;
+    z-index: 0;
 }
+
+@keyframes heroGlow {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.05); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.hero-title,
+.hero-subtitle,
+.hero-badges {
+    position: relative;
+    z-index: 2;
+}
+
+/* ---- Glass Navbar ---- */
+.glass-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: rgba(17, 25, 40, 0.55);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 1rem;
+}
+
+.nav-left {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.nav-right {
+    font-size: 12px;
+    color: #9aa0a6;
+}
+
+/* ---- Status Chips ---- */
+.status-chip {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-left: 6px;
+}
+/* ---- Netflix Hero Header ---- */
 
 .hero-title {
     font-size: 42px;
@@ -373,6 +428,20 @@ def prepare_similarity_engine(df):
 sim_games, nn_model = prepare_similarity_engine(df_games)
 # ---------------- HEADER ----------------
 st.toast("Model ready", icon="🤖")
+# ---------- GLASS NAVBAR ----------
+best_acc_display = st.session_state.get("best_acc_pct", "—")
+latency_display = st.session_state.get("last_latency", 0)
+
+st.markdown(f"""
+<div class="glass-nav">
+    <div class="nav-left">⚡ ML Ops Dashboard</div>
+    <div class="nav-right">
+        <span class="status-chip">Best Acc: {best_acc_display}</span>
+        <span class="status-chip">Latency: {latency_display:.1f} ms</span>
+        <span class="status-chip">Models: 5+</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 st.markdown("""
 <div class="hero-container">
     <div class="hero-title">🎮 Video Game Sales Intelligence</div>
@@ -441,16 +510,14 @@ with tab1:
     st.caption("Adjust regional sales from the sidebar to explore predictions.")
 
     # ---------- HEAVY COMPUTATION WITH SPINNER ----------
-    with st.spinner("Running ML inference..."):
+    start_inf = time.perf_counter()
 
-        features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
-        features_scaled = scaler.transform(features)
+    active_model = calibrated_model if use_calibrated else model
+    pred = active_model.predict(features_scaled)[0]
+    proba = active_model.predict_proba(features_scaled)[0]
 
-        active_model = calibrated_model if use_calibrated else model
-
-        pred = active_model.predict(features_scaled)[0]
-        proba = active_model.predict_proba(features_scaled)[0]
-        confidence = np.max(proba) * 100
+    latency_ms = (time.perf_counter() - start_inf) * 1000
+    st.session_state.last_latency = latency_ms
 
     st.session_state.prediction_count += 1
         # ---------- CALIBRATION HINT ----------
@@ -670,6 +737,10 @@ with tab3:
     ]
 
     acc_df = pd.DataFrame(acc_data)
+    st.session_state.best_acc_pct = best_acc_pct
+
+    best_acc_value = acc_df["Accuracy"].max()
+    best_acc_pct = f"{best_acc_value*100:.2f}%"
 
     # ---------- SUMMARY CARDS ----------
     best_acc_model = acc_df.sort_values("Accuracy", ascending=False).iloc[0]["Model"]
