@@ -4,6 +4,8 @@ import joblib
 import pandas as pd
 import plotly.express as px
 import shap
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 from sklearn.inspection import permutation_importance
 from sklearn.naive_bayes import GaussianNB
@@ -11,6 +13,9 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, accuracy_score
+
 
 
 # ---------------- PAGE CONFIG ----------------
@@ -84,6 +89,27 @@ def load_dataset():
     return df
 
 df_games = load_dataset()
+
+# ---------------- MODEL COMPARISON DATA ----------------
+@st.cache_data
+def prepare_model_data(df):
+    temp = df.dropna(subset=[
+        "NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"
+    ]).copy()
+
+    # create target classes using quantiles
+    temp["Sales_Class"] = pd.qcut(
+        temp["Global_Sales"],
+        q=3,
+        labels=[0, 1, 2]
+    )
+
+    X = temp[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]]
+    y = temp["Sales_Class"].astype(int)
+
+    return train_test_split(X, y, test_size=0.25, random_state=42)
+
+X_train_cmp, X_test_cmp, y_train_cmp, y_test_cmp = prepare_model_data(df_games)
 
 # ---------------- MEMORY SAFE SIMILARITY ----------------
 @st.cache_resource
@@ -263,37 +289,59 @@ with tab2:
 # TAB 3 — MODEL COMPARISON
 # ============================================================
 with tab3:
-    st.subheader("Model Comparison")
+    st.subheader("📊 Real Model Comparison")
 
-    st.caption("Quick comparison using synthetic sample")
+    from sklearn.svm import SVC
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.neighbors import KNeighborsClassifier
 
-    try:
-        # synthetic data for demo comparison
-        X_demo = np.random.rand(500, 4)
-        y_demo = model.predict(scaler.transform(X_demo))
+    # ----- Train models -----
+    svm_cmp = SVC(probability=True).fit(X_train_cmp, y_train_cmp)
+    nb_cmp = GaussianNB().fit(X_train_cmp, y_train_cmp)
+    knn_cmp = KNeighborsClassifier(n_neighbors=7).fit(X_train_cmp, y_train_cmp)
 
-        nb = GaussianNB().fit(X_demo, y_demo)
-        knn = KNeighborsClassifier().fit(X_demo, y_demo)
+    # ----- Predictions -----
+    preds = {
+        "SVM": svm_cmp.predict(X_test_cmp),
+        "Naive Bayes": nb_cmp.predict(X_test_cmp),
+        "KNN": knn_cmp.predict(X_test_cmp),
+    }
 
-        acc_svm = accuracy_score(y_demo, model.predict(scaler.transform(X_demo)))
-        acc_nb = accuracy_score(y_demo, nb.predict(X_demo))
-        acc_knn = accuracy_score(y_demo, knn.predict(X_demo))
-
-        comp_df = pd.DataFrame({
-            "Model": ["SVM", "Naive Bayes", "KNN"],
-            "Accuracy": [acc_svm, acc_nb, acc_knn]
+    # ----- Accuracy table -----
+    acc_data = []
+    for name, p in preds.items():
+        acc_data.append({
+            "Model": name,
+            "Accuracy": accuracy_score(y_test_cmp, p)
         })
 
-        fig_cmp = px.bar(
-            comp_df,
-            x="Model",
-            y="Accuracy",
-            color="Accuracy"
-        )
-        st.plotly_chart(fig_cmp, use_container_width=True)
+    acc_df = pd.DataFrame(acc_data)
 
-    except Exception:
-        st.warning("Model comparison unavailable.")
+    st.markdown("### 🏆 Accuracy Comparison")
+
+    fig_acc = px.bar(
+        acc_df,
+        x="Model",
+        y="Accuracy",
+        color="Accuracy"
+    )
+    st.plotly_chart(fig_acc, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### 🔥 Confusion Matrices")
+
+    cols = st.columns(3)
+
+    for i, (name, p) in enumerate(preds.items()):
+        cm = confusion_matrix(y_test_cmp, p)
+
+        with cols[i]:
+            fig, ax = plt.subplots()
+            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
+            ax.set_title(name)
+            ax.set_xlabel("Predicted")
+            ax.set_ylabel("Actual")
+            st.pyplot(fig)
 
 # ============================================================
 # TAB 4 — SHAP EXPLAINABILITY
