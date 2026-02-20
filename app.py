@@ -424,45 +424,45 @@ with tab6:
     else:
         st.dataframe(top_games, use_container_width=True)
     st.markdown("---")
-st.subheader("🧠 Similar Game Finder (Advanced)")
-if sim_games is None:
-    st.error("Similarity engine failed to initialize.")
-    st.stop()
+    st.subheader("🧠 Similar Game Finder (Advanced)")
+    if sim_games is None:
+        st.error("Similarity engine failed to initialize.")
+        st.stop()
 
-game_list = sim_games["Name"].unique()
+    game_list = sim_games["Name"].unique()
 
-selected_game = st.selectbox(
-    "Select a game to find similar ones",
-    game_list
-)
+    selected_game = st.selectbox(
+        "Select a game to find similar ones",
+        game_list
+    )
 
-if st.button("🔍 Find Similar Games"):
-    try:
-        idx = sim_games[sim_games["Name"] == selected_game].index[0]
-        sim_scores = list(enumerate(similarity_matrix[idx]))
+    if st.button("🔍 Find Similar Games"):
+        try:
+            idx = sim_games[sim_games["Name"] == selected_game].index[0]
+            sim_scores = list(enumerate(similarity_matrix[idx]))
 
-        # sort by similarity
-        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+            # sort by similarity
+            sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
 
-        # skip itself
-        sim_scores = sim_scores[1:11]
+            # skip itself
+            sim_scores = sim_scores[1:11]
 
-        game_indices = [i[0] for i in sim_scores]
+            game_indices = [i[0] for i in sim_scores]
 
-        similar_games = sim_games.iloc[game_indices][[
-            "Name",
-            "Platform",
-            "Genre",
-            "Global_Sales"
-        ]]
+            similar_games = sim_games.iloc[game_indices][[
+                "Name",
+                "Platform",
+                "Genre",
+                "Global_Sales"
+            ]]
 
-        st.success("Top similar games:")
+            st.success("Top similar games:")
 
-        st.dataframe(similar_games, use_container_width=True)
+            st.dataframe(similar_games, use_container_width=True)
 
-    except Exception as e:
-        st.error("Could not compute similar games.")
-        st.caption(str(e))
+        except Exception as e:
+            st.error("Could not compute similar games.")
+            st.caption(str(e))
 
 
         # ---------- OPTIONAL CHART ----------
