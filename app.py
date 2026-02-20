@@ -749,10 +749,11 @@ with tab3:
     ]
 
     acc_df = pd.DataFrame(acc_data)
-    st.session_state.best_acc_pct = best_acc_pct
-
     best_acc_value = acc_df["Accuracy"].max()
     best_acc_pct = f"{best_acc_value*100:.2f}%"
+    st.session_state.best_acc_pct = best_acc_pct
+
+
 
     # ---------- SUMMARY CARDS ----------
     best_acc_model = acc_df.sort_values("Accuracy", ascending=False).iloc[0]["Model"]
