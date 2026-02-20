@@ -7,3 +7,4 @@ plotly
 shap
 seaborn
 matplotlib
+xgboost
