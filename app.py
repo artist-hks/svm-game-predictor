@@ -525,6 +525,18 @@ with tab1:
     st.caption(f"Prediction certainty score: {1/(1+entropy):.3f}")
 
     text, color = labels[pred]
+    # ---------- MODEL INFERENCE ----------
+    with st.spinner("Running ML inference..."):
+        start_inf = time.perf_counter()
+
+    active_model = calibrated_model if use_calibrated else model
+    pred = active_model.predict(features_scaled)[0]
+    proba = active_model.predict_proba(features_scaled)[0]
+
+    confidence = float(np.max(proba) * 100)
+
+    latency_ms = (time.perf_counter() - start_inf) * 1000
+    st.session_state.last_latency = latency_ms
 
     # ---------- RESULT CARD ----------
     st.markdown(
