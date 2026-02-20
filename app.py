@@ -293,6 +293,16 @@ with tab2:
 # ============================================================
 with tab3:
     st.subheader("📊 Real Model Comparison")
+    best_acc_model = acc_df.sort_values("Accuracy", ascending=False).iloc[0]["Model"]
+    fastest_model = acc_df.sort_values("Training Time (s)").iloc[0]["Model"]
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.success(f"🏆 Most Accurate Model: **{best_acc_model}**")
+
+    with c2:
+        st.info(f"⚡ Fastest Training Model: **{fastest_model}**")
 
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
