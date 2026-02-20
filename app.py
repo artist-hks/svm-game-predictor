@@ -20,6 +20,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.preprocessing import label_binarize
 from xgboost import XGBClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import roc_curve, auc, precision_score, recall_score
 
 
 # ---------- SESSION ANALYTICS ----------
@@ -282,13 +283,14 @@ st.sidebar.caption(
 )
 
 # ---------------- TABS ----------------
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
     "🧠 SHAP Explainability",
     "📊 Analytics Dashboard",
-    "🎮 Game Recommender"
+    "🎮 Game Recommender",
+    "🧪 Model Diagnostics"
 ])
 
 # ============================================================
@@ -855,7 +857,113 @@ with tab6:
         title="Top Recommended Games by Global Sales"
     )
     st.plotly_chart(fig_top, use_container_width=True)
+# ============================================================
+# TAB 7 — MODEL DIAGNOSTICS
+# ============================================================
+with tab7:
+    st.subheader("🧪 Model Diagnostics")
 
+    # ---------- choose best model ----------
+    best_model_name = acc_df.sort_values(
+        "Accuracy", ascending=False
+    ).iloc[0]["Model"]
+
+    model_map = {
+        "SVM": svm_cmp,
+        "Naive Bayes": nb_cmp,
+        "KNN": knn_cmp,
+        "XGBoost": xgb_cmp
+    }
+
+    best_model = model_map[best_model_name]
+
+    st.success(f"Analyzing best model: **{best_model_name}**")
+
+    # =====================================================
+    # ROC CURVES (MULTICLASS)
+    # =====================================================
+    st.markdown("### 📉 Multiclass ROC Curves")
+
+    try:
+        y_test_bin = label_binarize(y_test_cmp, classes=[0, 1, 2])
+        y_proba = best_model.predict_proba(X_test_cmp)
+
+        roc_data = []
+
+        for i, class_name in enumerate(["Low", "Medium", "High"]):
+            fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_proba[:, i])
+            roc_auc = auc(fpr, tpr)
+
+            temp_df = pd.DataFrame({
+                "FPR": fpr,
+                "TPR": tpr,
+                "Class": class_name
+            })
+            roc_data.append(temp_df)
+
+        roc_df = pd.concat(roc_data)
+
+        fig_roc = px.line(
+            roc_df,
+            x="FPR",
+            y="TPR",
+            color="Class",
+            title="ROC Curve (One-vs-Rest)"
+        )
+
+        st.plotly_chart(fig_roc, use_container_width=True)
+
+    except Exception as e:
+        st.warning("ROC could not be computed.")
+
+    # =====================================================
+    # PRECISION / RECALL TABLE
+    # =====================================================
+    st.markdown("### 📊 Precision & Recall")
+
+    y_pred_best = best_model.predict(X_test_cmp)
+
+    metrics_df = pd.DataFrame({
+        "Metric": ["Precision", "Recall"],
+        "Score": [
+            precision_score(y_test_cmp, y_pred_best, average="macro"),
+            recall_score(y_test_cmp, y_pred_best, average="macro")
+        ]
+    })
+
+    st.dataframe(metrics_df, use_container_width=True)
+
+    # =====================================================
+    # CLASS DISTRIBUTION
+    # =====================================================
+    st.markdown("### 🧮 Test Set Class Distribution")
+
+    dist_df = y_test_cmp.value_counts().reset_index()
+    dist_df.columns = ["Class", "Count"]
+
+    fig_dist = px.bar(
+        dist_df,
+        x="Class",
+        y="Count",
+        color="Count",
+        title="Class Distribution in Test Set"
+    )
+
+    st.plotly_chart(fig_dist, use_container_width=True)
+
+    # =====================================================
+    # MISCLASSIFICATION COUNT
+    # =====================================================
+    st.markdown("### 🚨 Misclassification Insight")
+
+    misclassified = (y_test_cmp != y_pred_best).sum()
+    total = len(y_test_cmp)
+
+    st.metric(
+        "Misclassified Samples",
+        f"{misclassified} / {total}",
+        delta=f"{(misclassified/total)*100:.2f}% error"
+    )
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("Built by HKS • Machine Learning • UI/UX")
