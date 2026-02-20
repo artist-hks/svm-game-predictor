@@ -55,12 +55,13 @@ proba = model.predict_proba(features_scaled)[0]
 confidence = np.max(proba) * 100
 
 # ---------------- TABS ----------------
-tab1, tab2, tab3, tab4, tab5= st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
     "🧠 SHAP Explainability",
-    "📊 Analytics Dashboard"
+    "📊 Analytics Dashboard",
+    "🎮 Game Recommender"
 ])
 
 # ============================================================
@@ -319,6 +320,85 @@ with tab5:
             title="Sales Correlation Heatmap"
         )
         st.plotly_chart(fig_corr, use_container_width=True)
+
+# ============================================================
+# TAB 6 — GAME RECOMMENDER SYSTEM
+# ============================================================
+with tab6:
+    st.subheader("🎮 Video Game Recommender")
+
+    st.caption("Find top games based on platform, genre, and year.")
+
+    # ---------- FILTERS ----------
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        platform_list = sorted(df_games["Platform"].dropna().unique())
+        selected_platform = st.selectbox(
+            "Select Platform",
+            ["All"] + platform_list
+        )
+
+    with col2:
+        genre_list = sorted(df_games["Genre"].dropna().unique())
+        selected_genre = st.selectbox(
+            "Select Genre",
+            ["All"] + genre_list
+        )
+
+    with col3:
+        year_min = int(df_games["Year"].min())
+        year_max = int(df_games["Year"].max())
+
+        year_range = st.slider(
+            "Select Year Range",
+            year_min,
+            year_max,
+            (year_min, year_max)
+        )
+
+    # ---------- FILTER DATA ----------
+    filtered_df = df_games.copy()
+
+    if selected_platform != "All":
+        filtered_df = filtered_df[
+            filtered_df["Platform"] == selected_platform
+        ]
+
+    if selected_genre != "All":
+        filtered_df = filtered_df[
+            filtered_df["Genre"] == selected_genre
+        ]
+
+    filtered_df = filtered_df[
+        (filtered_df["Year"] >= year_range[0]) &
+        (filtered_df["Year"] <= year_range[1])
+    ]
+
+    # ---------- TOP GAMES ----------
+    st.markdown("### 🏆 Top Recommended Games")
+
+    top_games = (
+        filtered_df
+        .sort_values("Global_Sales", ascending=False)
+        .head(10)
+        [["Name", "Platform", "Genre", "Year", "Global_Sales"]]
+    )
+
+    if len(top_games) == 0:
+        st.warning("No games found for selected filters.")
+    else:
+        st.dataframe(top_games, use_container_width=True)
+
+        # ---------- OPTIONAL CHART ----------
+        fig_top = px.bar(
+            top_games,
+            x="Name",
+            y="Global_Sales",
+            color="Global_Sales",
+            title="Top Recommended Games by Global Sales"
+        )
+        st.plotly_chart(fig_top, use_container_width=True)
 
 # ---------------- FOOTER ----------------
 st.caption("Built by HKS • ML + UI/UX • Advanced Edition")
