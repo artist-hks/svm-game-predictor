@@ -179,35 +179,43 @@ with tab3:
 # ============================================================
 with tab4:
     st.subheader("SHAP Explainability")
-
     st.caption("Local explanation of the current prediction")
 
     try:
-        background = shap.sample(
-            scaler.transform(np.random.rand(200, 4)),
-            50
+        # --- create small background (FAST) ---
+        background = np.zeros((50, 4))
+
+        # --- cached explainer ---
+        @st.cache_resource
+        def get_explainer():
+            return shap.KernelExplainer(model.predict_proba, background)
+
+        explainer = get_explainer()
+
+        # --- compute shap (LIMITED samples for speed) ---
+        shap_values = explainer.shap_values(features_scaled, nsamples=50)
+
+        # --- plot as bar (STREAMLIT SAFE) ---
+        st.subheader("Feature Impact")
+
+        shap_df = pd.DataFrame({
+            "Feature": ["NA", "EU", "JP", "Other"],
+            "Impact": np.abs(shap_values[0][0])
+        }).sort_values("Impact", ascending=False)
+
+        fig_shap = px.bar(
+            shap_df,
+            x="Feature",
+            y="Impact",
+            color="Impact",
+            title="SHAP Feature Impact"
         )
 
-        explainer = shap.KernelExplainer(
-            model.predict_proba,
-            background
-        )
+        st.plotly_chart(fig_shap, use_container_width=True)
 
-        shap_values = explainer.shap_values(features_scaled, nsamples=100)
-
-        st.set_option('deprecation.showPyplotGlobalUse', False)
-        shap.initjs()
-
-        fig_shap = shap.force_plot(
-            explainer.expected_value[0],
-            shap_values[0][0],
-            matplotlib=True
-        )
-
-        st.pyplot(bbox_inches='tight')
-
-    except Exception:
-        st.warning("SHAP visualization unavailable (first load may be slow).")
+    except Exception as e:
+        st.error("SHAP failed to compute.")
+        st.caption(str(e))
 
 # ---------------- FOOTER ----------------
 st.caption("Built by HKS • ML + UI/UX • Advanced Edition")
