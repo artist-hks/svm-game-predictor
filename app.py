@@ -371,7 +371,6 @@ with tab3:
         color="Training Time (s)"
     )
     st.plotly_chart(fig_time, use_container_width=True)
-    st.markdown("---")
 
     st.markdown("---")
     st.markdown("### 🔥 Confusion Matrices")
