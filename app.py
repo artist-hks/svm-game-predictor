@@ -1192,90 +1192,481 @@ with tab9:
     st.dataframe(compare_df, use_container_width=True)
 
 # ============================================================
-# TAB 10 — ABOUT MODEL
+# TAB 10 — ABOUT MODEL (FULL TECHNICAL DOCUMENTATION)
 # ============================================================
 with tab10:
-    st.subheader("📘 About This Project")
+    st.subheader("📘 About Model — Technical Deep Dive")
+    st.caption("Comprehensive technical documentation of the Video Game Sales Intelligence system.")
 
     st.markdown("""
-### 🎯 Problem Statement
-This application predicts the **global sales performance class** of a video game
-(Low, Medium, High) based on regional sales inputs.
+# 🎮 Video Game Sales Intelligence — System Documentation
 
-The goal is to demonstrate an end-to-end production-style ML workflow including
-model comparison, explainability, monitoring, and interactive simulation.
+This dashboard represents a **production-style end-to-end machine learning system**
+designed to predict the global commercial performance tier of video games based on
+regional sales signals.
+
+Unlike typical academic demos that stop at model accuracy, this system emphasizes:
+
+- reproducible preprocessing  
+- multi-model benchmarking  
+- probability calibration  
+- explainability  
+- drift awareness  
+- interactive simulation  
+
+The objective is to demonstrate disciplined machine learning engineering practices
+in a deployable analytical interface.
 
 ---
 
-### 📊 Input Features
-The model uses the following numerical features:
+# 🎯 1. Problem Definition
 
-- NA_Sales  
-- EU_Sales  
-- JP_Sales  
-- Other_Sales  
+## 1.1 Business Framing
 
-Target variable is derived from **Global_Sales** using quantile-based binning.
+Predicting exact video game revenue is highly noisy and sensitive to outliers.
+Instead of treating the task as regression, the problem is formulated as a
+**multi-class classification task**.
+
+The system predicts whether a game belongs to:
+
+- 📉 Low Sales  
+- 📊 Medium Sales  
+- 🚀 High Sales  
+
+### Why classification instead of regression?
+
+- reduces sensitivity to extreme revenue values  
+- improves interpretability for decision support  
+- stabilizes model training  
+- aligns better with risk-tier business thinking  
+- simplifies evaluation across multiple algorithms  
+
+This framing converts raw revenue prediction into a **structured success
+categorization problem**.
 
 ---
 
-### 🧠 Models Implemented
-The system compares multiple ML algorithms:
+## 1.2 Machine Learning Formulation
 
-- Gaussian Naive Bayes  
+Given regional sales vector:
+
+X = (NA, EU, JP, Other)
+
+Learn mapping:
+
+f(X) → {Low, Medium, High}
+
+This is treated as a **supervised multi-class classification problem**
+with balanced class construction.
+
+---
+
+# 📊 2. Dataset Description
+
+## 2.1 Source
+
+The system uses the widely adopted **vgsales dataset**, which aggregates
+historical video game performance across platforms and regions.
+
+The dataset includes:
+
+- platform information  
+- genre metadata  
+- publisher data  
+- regional sales figures  
+- global sales totals  
+
+For modeling stability, the current pipeline focuses on **numerical
+regional sales features**.
+
+---
+
+## 2.2 Feature Set Used
+
+Primary predictive features:
+
+- **NA_Sales** — North America performance  
+- **EU_Sales** — Europe performance  
+- **JP_Sales** — Japan performance  
+- **Other_Sales** — Rest-of-world performance  
+
+These variables are continuous and moderately correlated, making them
+suitable for margin-based, distance-based, and tree-based learners.
+
+---
+
+## 2.3 Target Engineering
+
+The raw **Global_Sales** variable is transformed using **quantile binning**
+into three approximately balanced classes.
+
+### Motivation for quantile binning
+
+- prevents severe class imbalance  
+- stabilizes multi-class learning  
+- improves cross-model comparability  
+- reduces skew from blockbuster outliers  
+
+Formally:
+
+- bottom quantile → Low  
+- middle quantile → Medium  
+- top quantile → High  
+
+This creates a **balanced ordinal classification target**.
+
+---
+
+# 🧠 3. Data Preprocessing Pipeline
+
+The preprocessing stage follows a production-aware structure.
+
+## 3.1 Data Cleaning
+
+Steps performed:
+
+- removal of rows missing critical sales fields  
+- validation of numeric feature ranges  
+- index reset after filtering  
+
+This ensures model inputs remain consistent.
+
+---
+
+## 3.2 Train-Test Strategy
+
+The dataset is split using:
+
+- **stratified sampling**  
+- fixed random seed  
+- preserved class proportions  
+
+Stratification is critical because naive splits can distort class balance,
+leading to misleading accuracy.
+
+---
+
+## 3.3 Feature Scaling
+
+The pipeline applies **StandardScaler normalization**.
+
+### Why scaling matters
+
+Scaling is essential for:
+
+- Support Vector Machines  
 - K-Nearest Neighbors  
-- Decision Tree  
-- Support Vector Machine (primary model)  
-- XGBoost  
+- distance-sensitive algorithms  
+- gradient-based optimizers  
 
-This provides a bias–variance and algorithmic diversity comparison.
+Without scaling:
 
----
+- SVM margins distort  
+- KNN distance becomes biased  
+- convergence stability drops  
 
-### 🧪 Evaluation Strategy
-Models are evaluated using:
+The scaler is:
 
-- Train–test split  
-- Stratified 5-fold cross-validation  
-- Accuracy comparison  
-- Confusion matrices  
-- ROC analysis  
-- Probability calibration  
+- fit on training data  
+- persisted via joblib  
+- reused at inference time  
 
----
-
-### ⚠️ Known Limitations
-Important for responsible interpretation:
-
-- Sales data is historical and platform-dependent  
-- Quantile binning may oversimplify real revenue patterns  
-- Regional sales are highly correlated  
-- Model does not include marketing or release timing factors  
-- Predictions are indicative, not financial forecasts  
+This guarantees **train–serve consistency**.
 
 ---
 
-### 🚀 Future Improvements
-Potential production enhancements:
+# 🤖 4. Model Architecture
 
-- larger and updated dataset  
-- feature enrichment (publisher, genre encoding)  
-- time-aware validation  
-- automated drift retraining pipeline  
-- real user telemetry integration  
+The system intentionally implements a **diverse model portfolio**
+to compare learning biases.
+
+## 4.1 Gaussian Naive Bayes
+
+Role:
+
+- probabilistic baseline  
+- fast training  
+- low variance  
+
+Characteristics:
+
+- assumes conditional independence  
+- works well on simple distributions  
+- provides reference floor performance  
 
 ---
 
-### 👨‍💻 Developer
-**Hemant Kumar Sharma (HKS)**  
-B.Tech Computer Science • UI/UX Designer • ML Enthusiast
+## 4.2 K-Nearest Neighbors
 
-Built with Streamlit, scikit-learn, and Plotly.
+Role:
+
+- distance-based learner  
+- non-parametric baseline  
+
+Strengths:
+
+- captures local structure  
+- no explicit training phase  
+
+Limitations:
+
+- sensitive to feature scaling  
+- slower inference at scale  
+
+---
+
+## 4.3 Decision Tree
+
+Role:
+
+- interpretable nonlinear model  
+- rule-based structure  
+
+Advantages:
+
+- human-readable splits  
+- handles nonlinearity  
+- feature interaction capture  
+
+Controls applied:
+
+- max_depth constraint  
+- random_state for reproducibility  
+
+---
+
+## 4.4 Support Vector Machine (Primary Model)
+
+The SVM serves as the **primary deployed classifier**.
+
+### Why SVM?
+
+- strong performance on tabular data  
+- robust decision boundaries  
+- effective in medium-dimensional spaces  
+- good bias–variance tradeoff  
+
+Kernel: RBF  
+Probability mode: enabled  
+Input: standardized features  
+
+---
+
+## 4.5 XGBoost
+
+Role:
+
+- gradient boosting benchmark  
+- high-capacity nonlinear learner  
+
+Strengths:
+
+- captures complex interactions  
+- strong tabular performance  
+- ensemble robustness  
+
+Used primarily for **comparative benchmarking**.
+
+---
+
+# 🧪 5. Evaluation Framework
+
+The system avoids single-metric evaluation.
+
+## 5.1 Hold-Out Accuracy
+
+Provides quick sanity check but is **not relied upon alone**.
+
+---
+
+## 5.2 Stratified 5-Fold Cross-Validation
+
+Used to estimate generalization stability.
+
+Benefits:
+
+- reduces split variance  
+- exposes overfitting  
+- improves credibility  
+
+Metrics reported:
+
+- mean accuracy  
+- standard deviation  
+
+---
+
+## 5.3 Confusion Matrix Analysis
+
+Helps identify:
+
+- class-wise weaknesses  
+- misclassification patterns  
+- bias toward specific tiers  
+
+---
+
+## 5.4 Multiclass ROC (OvR)
+
+Implements one-vs-rest ROC curves.
+
+Purpose:
+
+- threshold behavior analysis  
+- separability inspection  
+- model discrimination power  
+
+---
+
+## 5.5 Macro Precision & Recall
+
+Macro averaging ensures:
+
+- equal weight to all classes  
+- robustness under class imbalance  
+- fair multi-class evaluation  
+
+---
+
+# 📉 6. Probability Calibration
+
+Raw classifier probabilities are often misaligned.
+
+The system supports **Platt scaling** via:
+
+CalibratedClassifierCV
+
+### Why calibration matters
+
+Uncalibrated models may:
+
+- be overconfident  
+- mislead downstream decisions  
+- distort risk interpretation  
+
+Calibration improves:
+
+- probability reliability  
+- decision thresholding  
+- trustworthiness  
+
+Users can toggle calibrated inference from the sidebar.
+
+---
+
+# 🔍 7. Explainability Layer
+
+Transparency is implemented through multiple techniques.
+
+## 7.1 Permutation Importance
+
+Measures performance drop when features are shuffled.
+
+Benefits:
+
+- model-agnostic  
+- intuitive  
+- robust baseline importance  
+
+---
+
+## 7.2 SHAP Local Explanations
+
+Provides per-prediction attribution.
+
+Helps answer:
+
+> “Why did the model predict this class?”
+
+---
+
+## 7.3 Probability Breakdown
+
+Displays class-wise confidence distribution.
+
+---
+
+## 7.4 Input Sensitivity Analysis
+
+Performs controlled feature sweeps to visualize response curves.
+
+This reveals:
+
+- monotonicity  
+- saturation effects  
+- decision sensitivity  
+
+---
+
+# 🧭 8. Drift Monitoring
+
+A lightweight drift detector compares live inputs against the
+training distribution.
+
+Method:
+
+- compute z-score distance from training mean  
+- flag moderate or high deviation  
+
+Purpose:
+
+- detect out-of-distribution queries  
+- warn about reliability degradation  
+- simulate production monitoring  
+
+---
+
+# ⚠️ 9. Known Limitations
+
+No serious system hides its weaknesses.
+
+Key constraints:
+
+- historical dataset may not reflect modern markets  
+- regional sales are correlated  
+- quantile binning simplifies revenue dynamics  
+- temporal leakage not fully modeled  
+- marketing factors absent  
+- platform lifecycle effects ignored  
+
+Therefore, outputs should be interpreted as **indicative signals,
+not financial guarantees**.
+
+---
+
+# 🚀 10. Future Technical Roadmap
+
+Planned improvements:
+
+- time-aware cross-validation  
+- richer categorical encoding  
+- automated drift-triggered retraining  
+- expanded dataset coverage  
+- reliability diagram visualization  
+- real-time inference telemetry  
+- model versioning dashboard  
+
+---
+
+# 🧩 11. Design Philosophy
+
+This project is intentionally structured to resemble a **mini production
+ML system**, not a notebook prototype.
+
+Core principles:
+
+- reproducibility  
+- comparability  
+- interpretability  
+- monitoring awareness  
+- user-centric interaction  
+
+The emphasis is on building machine learning systems that are not only
+accurate but also **transparent, reliable, and deployable**.
 """)
 
     st.markdown("---")
-
-    st.caption("Model Version: v1.0 • Last Updated: 2026")
+    st.caption("Model Version: v1.0 • Production-Style ML Dashboard • Built by HKS")
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("Built by HKS • Machine Learning • UI/UX")
