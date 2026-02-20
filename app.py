@@ -164,8 +164,19 @@ with tab1:
         2: ("🚀 High Sales", "#22c55e")
     }
 
+    # ---------- HEAVY COMPUTATION WITH SPINNER ----------
+    with st.spinner("Analyzing game sales pattern..."):
+
+        features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
+        features_scaled = scaler.transform(features)
+
+        pred = model.predict(features_scaled)[0]
+        proba = model.predict_proba(features_scaled)[0]
+        confidence = np.max(proba) * 100
+
     text, color = labels[pred]
 
+    # ---------- RESULT CARD ----------
     st.markdown(
         f"""
         <div style="
@@ -181,6 +192,16 @@ with tab1:
         unsafe_allow_html=True
     )
 
+    # ---------- KPI METRICS ----------
+    st.markdown("---")
+    k1, k2, k3 = st.columns(3)
+
+    k1.metric("Predicted Class", text.replace("📉 ", "").replace("📊 ", "").replace("🚀 ", ""))
+    k2.metric("Confidence", f"{confidence:.2f}%")
+    k3.metric("Total Input Sales", f"{na_sales+eu_sales+jp_sales+other_sales:.2f}")
+
+    # ---------- PROBABILITY CHART ----------
+    st.markdown("---")
     st.subheader("🎯 Prediction Probabilities")
 
     prob_df = pd.DataFrame({
@@ -197,14 +218,6 @@ with tab1:
     )
     fig_prob.update_traces(texttemplate="%{text:.2f}", textposition="outside")
     st.plotly_chart(fig_prob, use_container_width=True)
-    confidence = np.max(proba) * 100
-    # ---------- KPI METRICS ----------
-    k1, k2, k3 = st.columns(3)
-
-    k1.metric("Predicted Class", text.replace("📉 ", "").replace("📊 ", "").replace("🚀 ", ""))
-    k2.metric("Confidence", f"{confidence:.2f}%")
-    k3.metric("Total Input Sales", f"{na_sales+eu_sales+jp_sales+other_sales:.2f}")
-
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
