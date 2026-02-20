@@ -9,6 +9,8 @@ from sklearn.inspection import permutation_importance
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.metrics.pairwise import cosine_similarity
+
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -26,7 +28,7 @@ def load_assets():
 
 model, scaler = load_assets()
 
-# ----- LOAD DATASET (ADD HERE) -----
+# ----- LOAD DATASET  -----
 @st.cache_data
 def load_dataset():
     df = pd.read_csv("vgsales.csv")
@@ -34,6 +36,30 @@ def load_dataset():
     return df
 
 df_games = load_dataset()
+
+@st.cache_data
+def prepare_similarity_data(df):
+    sim_df = df[[
+        "Name",
+        "NA_Sales",
+        "EU_Sales",
+        "JP_Sales",
+        "Other_Sales",
+        "Global_Sales"
+    ]].dropna()
+
+    features = sim_df[[
+        "NA_Sales",
+        "EU_Sales",
+        "JP_Sales",
+        "Other_Sales"
+    ]]
+
+    similarity_matrix = cosine_similarity(features)
+
+    return sim_df.reset_index(drop=True), similarity_matrix
+
+sim_games, similarity_matrix = prepare_similarity_data(df_games)
 
 # ---------------- HEADER ----------------
 st.title("🎮 Video Game Sales Predictor Pro")
@@ -389,6 +415,44 @@ with tab6:
         st.warning("No games found for selected filters.")
     else:
         st.dataframe(top_games, use_container_width=True)
+
+    st.markdown("---")
+st.subheader("🧠 Similar Game Finder (Advanced)")
+
+game_list = sim_games["Name"].unique()
+
+selected_game = st.selectbox(
+    "Select a game to find similar ones",
+    game_list
+)
+
+if st.button("🔍 Find Similar Games"):
+    try:
+        idx = sim_games[sim_games["Name"] == selected_game].index[0]
+        sim_scores = list(enumerate(similarity_matrix[idx]))
+
+        # sort by similarity
+        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+
+        # skip itself
+        sim_scores = sim_scores[1:11]
+
+        game_indices = [i[0] for i in sim_scores]
+
+        similar_games = sim_games.iloc[game_indices][[
+            "Name",
+            "Platform",
+            "Genre",
+            "Global_Sales"
+        ]]
+
+        st.success("Top similar games:")
+
+        st.dataframe(similar_games, use_container_width=True)
+
+    except Exception as e:
+        st.error("Could not compute similar games.")
+        st.caption(str(e))
 
         # ---------- OPTIONAL CHART ----------
         fig_top = px.bar(
