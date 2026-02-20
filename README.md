@@ -65,3 +65,65 @@ svm-game-sales-predictor
 ├── scaler.pkl
 ├── requirements.txt
 
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1️⃣ Clone the repository
+git clone https://github.com/artist-hks/svm-game-sales-predictor.git
+cd svm-game-sales-predictor
+
+### 2️⃣ Install dependencies
+python -m pip install -r requirements.txt
+
+### 3️⃣ Train the model (optional)
+python train_model.py
+
+### 4️⃣ Run the Streamlit app
+python -m streamlit run app.py
+
+---
+
+## 🎯 How the Predictor Works
+The user provides regional sales values:
+
+-NA Sales
+-EU Sales
+-JP Sales
+-Other Sales
+
+The trained SVM model predicts the sales category:
+
+-📉 Low Sales
+-📊 Medium Sales
+-🚀 High Sales
+
+## 🛠️ Tech Stack
+-Python
+-Scikit-learn
+-Pandas
+-NumPy
+-Streamlit
+-Joblib
+-Matplotlib
+-Seaborn
+
+
+## 👨‍💻 Author
+Hemant Sharma (HKS)
+Computer Science Student, PIET Jaipur
+-🎨 UI/UX Designer
+-💻 Web Developer
+-🤖 Machine Learning Enthusiast
+-🎮 Game Design & Development
+
+
+## ⭐ Future Improvements
+-Streamlit UI enhancement
+-Model comparison dashboard
+-Advanced feature engineering
+-Automated cloud deployment
+-Real-time game analytics integration
+
+
