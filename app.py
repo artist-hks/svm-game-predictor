@@ -293,6 +293,9 @@ with tab2:
 # ============================================================
 with tab3:
     st.subheader("📊 Real Model Comparison")
+    acc_df = pd.DataFrame(acc_data)
+
+    # ---------- SUMMARY CARDS ----------
     best_acc_model = acc_df.sort_values("Accuracy", ascending=False).iloc[0]["Model"]
     fastest_model = acc_df.sort_values("Training Time (s)").iloc[0]["Model"]
 
