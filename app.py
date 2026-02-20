@@ -26,6 +26,15 @@ def load_assets():
 
 model, scaler = load_assets()
 
+# ----- LOAD DATASET (ADD HERE) -----
+@st.cache_data
+def load_dataset():
+    df = pd.read_csv("vgsales.csv")
+    df = df.dropna(subset=["Global_Sales"])
+    return df
+
+df_games = load_dataset()
+
 # ---------------- HEADER ----------------
 st.title("🎮 Video Game Sales Predictor Pro")
 st.caption("Advanced ML dashboard with explainability")
@@ -50,7 +59,8 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🎯 Prediction",
     "📈 Feature Importance",
     "📊 Model Comparison",
-    "🧠 SHAP Explainability"
+    "🧠 SHAP Explainability",
+    "📊 Analytics Dashboard"
 ])
 
 # ============================================================
@@ -229,6 +239,86 @@ with tab4:
     except Exception as e:
         st.error("SHAP failed to compute.")
         st.caption(str(e))
+
+# ============================================================
+# TAB 5 — ANALYTICS DASHBOARD
+# ============================================================
+with tab5:
+    st.subheader("📊 Video Game Sales Analytics")
+
+    colA, colB = st.columns(2)
+
+    # ---------- Global Sales Distribution ----------
+    with colA:
+        st.markdown("### 🌍 Global Sales Distribution")
+
+        fig_hist = px.histogram(
+            df_games,
+            x="Global_Sales",
+            nbins=50,
+            title="Distribution of Global Sales"
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+    # ---------- Top Publishers ----------
+    with colB:
+        st.markdown("### 🏢 Top Publishers")
+
+        top_pub = (
+            df_games.groupby("Publisher")["Global_Sales"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(10)
+            .reset_index()
+        )
+
+        fig_pub = px.bar(
+            top_pub,
+            x="Publisher",
+            y="Global_Sales",
+            title="Top 10 Publishers by Global Sales"
+        )
+        st.plotly_chart(fig_pub, use_container_width=True)
+
+    st.markdown("---")
+
+    colC, colD = st.columns(2)
+
+    # ---------- Platform Sales ----------
+    with colC:
+        st.markdown("### 🎮 Platform-wise Sales")
+
+        plat_sales = (
+            df_games.groupby("Platform")["Global_Sales"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(10)
+            .reset_index()
+        )
+
+        fig_plat = px.bar(
+            plat_sales,
+            x="Platform",
+            y="Global_Sales",
+            title="Top Platforms by Sales"
+        )
+        st.plotly_chart(fig_plat, use_container_width=True)
+
+    # ---------- Correlation Heatmap ----------
+    with colD:
+        st.markdown("### 🔥 Sales Correlation")
+
+        corr = df_games[
+            ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]
+        ].corr()
+
+        fig_corr = px.imshow(
+            corr,
+            text_auto=True,
+            aspect="auto",
+            title="Sales Correlation Heatmap"
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
 
 # ---------------- FOOTER ----------------
 st.caption("Built by HKS • ML + UI/UX • Advanced Edition")
