@@ -37,27 +37,35 @@ def load_dataset():
 
 df_games = load_dataset()
 
+# ---------------- SAFE SIMILARITY PREP ----------------
 @st.cache_data
 def prepare_similarity_data(df):
-    sim_df = df[[
-        "Name",
-        "NA_Sales",
-        "EU_Sales",
-        "JP_Sales",
-        "Other_Sales",
-        "Global_Sales"
-    ]].dropna()
+    try:
+        sim_df = df[[
+            "Name",
+            "Platform",
+            "Genre",
+            "NA_Sales",
+            "EU_Sales",
+            "JP_Sales",
+            "Other_Sales",
+            "Global_Sales"
+        ]].dropna()
 
-    features = sim_df[[
-        "NA_Sales",
-        "EU_Sales",
-        "JP_Sales",
-        "Other_Sales"
-    ]]
+        features = sim_df[[
+            "NA_Sales",
+            "EU_Sales",
+            "JP_Sales",
+            "Other_Sales"
+        ]]
 
-    similarity_matrix = cosine_similarity(features)
+        similarity_matrix = cosine_similarity(features)
 
-    return sim_df.reset_index(drop=True), similarity_matrix
+        return sim_df.reset_index(drop=True), similarity_matrix
+
+    except Exception as e:
+        return None, None
+
 
 sim_games, similarity_matrix = prepare_similarity_data(df_games)
 
@@ -415,9 +423,11 @@ with tab6:
         st.warning("No games found for selected filters.")
     else:
         st.dataframe(top_games, use_container_width=True)
-
     st.markdown("---")
 st.subheader("🧠 Similar Game Finder (Advanced)")
+if sim_games is None:
+    st.error("Similarity engine failed to initialize.")
+    st.stop()
 
 game_list = sim_games["Name"].unique()
 
@@ -453,6 +463,7 @@ if st.button("🔍 Find Similar Games"):
     except Exception as e:
         st.error("Could not compute similar games.")
         st.caption(str(e))
+
 
         # ---------- OPTIONAL CHART ----------
         fig_top = px.bar(
