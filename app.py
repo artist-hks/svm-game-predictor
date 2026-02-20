@@ -127,7 +127,6 @@ def load_assets():
 
     return base_model, calibrated_model, scaler
 
-model, calibrated_model, scaler = load_assets()
 
 # ----- LOAD DATASET  -----
 @st.cache_data
