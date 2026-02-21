@@ -37,7 +37,7 @@ if "best_acc_pct" not in st.session_state:
 if "last_latency" not in st.session_state:
     st.session_state.last_latency = 0
 if "theme" not in st.session_state:
-    st.session_state.theme = "light" # Default to light theme like the reference
+    st.session_state.theme = "light"
 
 def toggle_theme():
     st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
@@ -51,7 +51,7 @@ if theme == "light":
     text_muted = "#64748b"
     border_color = "#e2e8f0"
     shadow = "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)"
-    accent_primary = "#6366f1" # Indigo
+    accent_primary = "#6366f1"
 else:
     bg_color = "#0b1220"
     card_bg = "#111928"
@@ -64,20 +64,15 @@ else:
 # ---------------- PREMIUM GLOBAL CSS ----------------
 st.markdown(f"""
 <style>
-/* Force background color on main app */
 .stApp {{
     background-color: {bg_color};
     color: {text_main};
 }}
-
-/* Hide default Streamlit top padding */
 .block-container {{
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
     max-width: 1400px;
 }}
-
-/* Custom SaaS Card */
 .saas-card {{
     background: {card_bg};
     border: 1px solid {border_color};
@@ -91,8 +86,6 @@ st.markdown(f"""
     transform: translateY(-2px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }}
-
-/* Typography */
 h1, h2, h3, h4, h5, h6, p, span, div {{
     color: {text_main};
     font-family: 'Inter', sans-serif;
@@ -100,8 +93,6 @@ h1, h2, h3, h4, h5, h6, p, span, div {{
 .text-muted {{
     color: {text_muted} !important;
 }}
-
-/* Tabs Styling (To look like the reference sub-nav) */
 .stTabs [data-baseweb="tab-list"] {{
     gap: 24px;
     background-color: transparent;
@@ -121,21 +112,15 @@ h1, h2, h3, h4, h5, h6, p, span, div {{
     border-bottom: 3px solid {accent_primary} !important;
     background-color: transparent !important;
 }}
-
-/* Sidebar Styling */
 [data-testid="stSidebar"] {{
     background-color: {card_bg};
     border-right: 1px solid {border_color};
 }}
-
-/* Dataframes */
 [data-testid="stDataFrame"] {{
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid {border_color};
 }}
-
-/* Top Nav Button */
 .theme-btn-container {{
     display: flex;
     justify-content: flex-end;
@@ -176,7 +161,7 @@ def apply_chart_theme(fig):
     )
     return fig
 
-# ---------------- LOAD MODEL (UNTOUCHED) ----------------
+# ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_assets():
     base_model = joblib.load("svm_model.pkl")
@@ -201,25 +186,43 @@ def compute_training_baseline(df):
 
 drift_baseline = compute_training_baseline(df_games)
 
+# --- SPEED OPTIMIZATION: Subsample for Benchmark ---
+@st.cache_data
+def prepare_model_data(df):
+    temp = df.dropna(subset=["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]).copy()
+    temp["Sales_Class"] = pd.qcut(temp["Global_Sales"], q=3, labels=[0, 1, 2])
+    
+    # Subsample to 3000 rows to make SVM training and CV instant
+    if len(temp) > 3000:
+        temp = temp.sample(3000, random_state=42)
+        
+    X = temp[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]]
+    y = temp["Sales_Class"].astype(int)
+    return train_test_split(X, y, test_size=0.25, random_state=42)
+
+X_train_cmp, X_test_cmp, y_train_cmp, y_test_cmp = prepare_model_data(df_games)
+
 @st.cache_resource
 def compute_cv_scores(X, y):
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     models = {
-        "SVM": SVC(probability=True),
+        "SVM": SVC(probability=True, random_state=42),
         "Naive Bayes": GaussianNB(),
-        "KNN": KNeighborsClassifier(n_neighbors=7),
+        "KNN": KNeighborsClassifier(n_neighbors=7, n_jobs=-1),
         "Decision Tree": DecisionTreeClassifier(max_depth=5, random_state=42),
-        "XGBoost": XGBClassifier(n_estimators=200, max_depth=5, learning_rate=0.05, subsample=0.9, colsample_bytree=0.9, eval_metric="mlogloss", use_label_encoder=False, random_state=42)
+        "XGBoost": XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1, subsample=0.9, colsample_bytree=0.9, eval_metric="mlogloss", use_label_encoder=False, random_state=42, n_jobs=-1)
     }
     results = {}
     for name, m in models.items():
-        scores = cross_val_score(m, X, y, cv=cv, scoring="accuracy")
+        # n_jobs=-1 uses all CPU cores for blazing fast cross-validation
+        scores = cross_val_score(m, X, y, cv=cv, scoring="accuracy", n_jobs=-1)
         results[name] = {"mean": scores.mean(), "std": scores.std()}
     return results
 
 @st.cache_resource
 def train_comparison_models(X_train, y_train):
     timings = {}
+    
     start = time.perf_counter()
     svm = SVC(probability=True, random_state=42).fit(X_train, y_train)
     timings["SVM"] = time.perf_counter() - start
@@ -229,7 +232,7 @@ def train_comparison_models(X_train, y_train):
     timings["Naive Bayes"] = time.perf_counter() - start
 
     start = time.perf_counter()
-    knn = KNeighborsClassifier(n_neighbors=7).fit(X_train, y_train)
+    knn = KNeighborsClassifier(n_neighbors=7, n_jobs=-1).fit(X_train, y_train)
     timings["KNN"] = time.perf_counter() - start
 
     start = time.perf_counter()
@@ -237,27 +240,17 @@ def train_comparison_models(X_train, y_train):
     timings["Decision Tree"] = time.perf_counter() - start
 
     start = time.perf_counter()
-    xgb = XGBClassifier(n_estimators=200, max_depth=5, learning_rate=0.05, subsample=0.9, colsample_bytree=0.9, eval_metric="mlogloss", random_state=42).fit(X_train, y_train)
+    xgb = XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1, subsample=0.9, colsample_bytree=0.9, eval_metric="mlogloss", random_state=42, n_jobs=-1).fit(X_train, y_train)
     timings["XGBoost"] = time.perf_counter() - start
 
     return svm, nb, knn, dt, xgb, timings
-
-@st.cache_data
-def prepare_model_data(df):
-    temp = df.dropna(subset=["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]).copy()
-    temp["Sales_Class"] = pd.qcut(temp["Global_Sales"], q=3, labels=[0, 1, 2])
-    X = temp[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]]
-    y = temp["Sales_Class"].astype(int)
-    return train_test_split(X, y, test_size=0.25, random_state=42)
-
-X_train_cmp, X_test_cmp, y_train_cmp, y_test_cmp = prepare_model_data(df_games)
 
 @st.cache_resource
 def prepare_similarity_engine(df):
     try:
         sim_df = df[["Name", "Platform", "Genre", "NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"]].dropna().reset_index(drop=True)
         features = sim_df[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]]
-        nn_model = NearestNeighbors(metric="cosine", algorithm="brute")
+        nn_model = NearestNeighbors(metric="cosine", algorithm="brute", n_jobs=-1)
         nn_model.fit(features)
         return sim_df, nn_model
     except Exception:
@@ -321,7 +314,6 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
 with tab1:
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     
-    # Top Row: 4 Metric Cards
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.markdown(saas_metric_card("NA Sales", f"${na_sales:.2f}M", "▲ 12%", "#22c55e", "🇺🇸", "#6366f1"), unsafe_allow_html=True)
     with m2: st.markdown(saas_metric_card("EU Sales", f"${eu_sales:.2f}M", "▲ 8%", "#22c55e", "🇪🇺", "#f59e0b"), unsafe_allow_html=True)
@@ -330,14 +322,12 @@ with tab1:
 
     st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
-    # Bottom Row: Main Chart + Prediction Card
     c_main, c_side = st.columns([2, 1])
     
     with c_main:
         st.markdown(f'<div class="saas-card">', unsafe_allow_html=True)
         st.markdown(f"<h4 style='margin-top:0;'>Sales Distribution Overview</h4>", unsafe_allow_html=True)
         
-        # Create a sleek bar chart for the current input
         input_df = pd.DataFrame({
             "Region": ["North America", "Europe", "Japan", "Other"],
             "Sales (Millions)": [na_sales, eu_sales, jp_sales, other_sales]
