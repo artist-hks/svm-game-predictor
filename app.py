@@ -246,6 +246,43 @@ header {visibility: hidden;}
 }
 </style>
 """, unsafe_allow_html=True)
+# ---------------- SIDEBAR (REAL-TIME SLIDERS) ----------------
+st.sidebar.markdown("## ⚙️ Control Panel")
+st.sidebar.caption("Adjust inputs and explore insights")
+st.sidebar.divider()
+st.sidebar.header("🎯 Regional Sales Input")
+
+na_sales = st.sidebar.slider("NA Sales", 0.0, 10.0, 0.5, 0.1)
+eu_sales = st.sidebar.slider("EU Sales", 0.0, 10.0, 0.3, 0.1)
+jp_sales = st.sidebar.slider("JP Sales", 0.0, 10.0, 0.1, 0.1)
+other_sales = st.sidebar.slider("Other Sales", 0.0, 10.0, 0.05, 0.05)
+
+use_calibrated = st.sidebar.toggle(
+    "Use calibrated probabilities",
+    value=True
+)
+
+features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
+features_scaled = scaler.transform(features)
+st.sidebar.markdown("---")
+st.sidebar.caption(
+    f"Session predictions: {st.session_state.prediction_count}"
+)
+
+# ---------------- TABS ----------------
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+    "🎯 Prediction",
+    "📈 Feature Importance",
+    "📊 Model Comparison",
+    "🧠 SHAP Explainability",
+    "📊 Analytics Dashboard",
+    "🎮 Game Recommender",
+    "🧪 Model Diagnostics",
+    "🎛️ What-If Simulator",
+    "🧭 Drift Monitor",
+    "📘 About Model"
+])
+
 # ============================================================
 # TAB 1 — PREDICTION
 # ============================================================
@@ -313,7 +350,6 @@ with tab1:
             proba = active_model.predict_proba(features_scaled)[0]
             confidence = float(np.max(proba) * 100)
 
-        # Fixed Indentation: These run AFTER the spinner completes
         latency_ms = (time.perf_counter() - start_inf) * 1000
         st.session_state.last_latency = latency_ms
         st.session_state.prediction_count += 1
@@ -326,7 +362,6 @@ with tab1:
 
         text, color = labels.get(pred, ("Unknown", "#9aa0a6"))
 
-        # Fixed Indentation: Properly aligned st.markdown
         st.markdown(
             f"""
             <div style="text-align:center; padding: 20px 10px;">
@@ -343,6 +378,8 @@ with tab1:
         )
 
         st.markdown("</div>", unsafe_allow_html=True)
+
+
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
