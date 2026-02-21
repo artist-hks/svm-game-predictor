@@ -282,7 +282,7 @@ header {visibility: hidden;}
             unsafe_allow_html=True
         )
 
-st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
