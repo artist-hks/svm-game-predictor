@@ -166,13 +166,15 @@ st.markdown("""
     margin-bottom: 2em;
 }
 
-/* ---- Glass cards ---- */
 .glass-card {
-    padding: 22px;
-    border-radius: 16px;
-    background: var(--card-bg);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 24px;
+    border-radius: 18px;
+    background: rgba(17, 25, 40, 0.78);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 /* ---- Metric number ---- */
@@ -465,7 +467,7 @@ with tab1:
     st.caption("Adjust regional sales from the sidebar to explore predictions.")
 
     # ====== MAIN TWO COLUMN LAYOUT ======
-    left_col, right_col = st.columns([1, 1.15])
+    left_col, right_col = st.columns([1, 1.1], gap="large")
 
     # =====================================================
     # LEFT — INPUT SUMMARY CARD
@@ -518,7 +520,12 @@ with tab1:
             f"""
             <div style="text-align:center; padding:10px;">
                 <h2 style="color:{color}; margin-bottom:6px;">{text}</h2>
-                <div class="metric-big">{confidence:.2f}% confidence</div>
+                <div style="font-size:42px; font-weight:800; margin-top:6px;">
+                    {confidence:.2f}%
+                </div>
+                <div style="color:#9aa0a6; font-size:13px;">
+                    Model confidence
+                </div>
             </div>
             """,
             unsafe_allow_html=True
