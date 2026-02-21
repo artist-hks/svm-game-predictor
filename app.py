@@ -177,8 +177,9 @@ st.markdown("""
 
 /* ---- Metric number ---- */
 .metric-big {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
 }
 
 /* ---- Section spacing ---- */
@@ -459,132 +460,71 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
 # TAB 1 — PREDICTION
 # ============================================================
 with tab1:
-    st.subheader("Prediction Result")
+    st.subheader("🎯 Sales Prediction")
 
-    labels = {
-        0: ("📉 Low Sales", "#ef4444"),
-        1: ("📊 Medium Sales", "#f59e0b"),
-        2: ("🚀 High Sales", "#22c55e")
-    }
     st.caption("Adjust regional sales from the sidebar to explore predictions.")
 
-    with st.spinner("Running ML inference..."):
-        start_inf = time.perf_counter()
+    # ====== MAIN TWO COLUMN LAYOUT ======
+    left_col, right_col = st.columns([1, 1.15])
 
-    active_model = calibrated_model if use_calibrated else model
-    pred = active_model.predict(features_scaled)[0]
-    proba = active_model.predict_proba(features_scaled)[0]
-    confidence = float(np.max(proba) * 100)
+    # =====================================================
+    # LEFT — INPUT SUMMARY CARD
+    # =====================================================
+    with left_col:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
 
-    latency_ms = (time.perf_counter() - start_inf) * 1000
-    st.session_state.last_latency = latency_ms
-    st.session_state.prediction_count += 1
-    # ---------- CALIBRATION HINT ----------
-    entropy = -np.sum(proba * np.log(proba + 1e-9))
-    st.caption(f"Prediction certainty score: {1/(1+entropy):.3f}")
+        st.markdown("### 🧾 Current Input Snapshot")
 
-    text, color = labels.get(pred, ("Unknown", "#9aa0a6"))
-    # ---------- RESULT CARD ----------
-    st.markdown(
-        f"""
-        <div style="
-            padding:25px;
-            border-radius:14px;
-            background:#111827;
-            border:1px solid #2d3748;
-            text-align:center;">
-            <h2 style="color:{color}; margin-bottom:0;">{text}</h2>
-            <p style="color:#9aa0a6;">Confidence: {confidence:.2f}%</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        st.metric("NA Sales", f"{na_sales:.2f}")
+        st.metric("EU Sales", f"{eu_sales:.2f}")
+        st.metric("JP Sales", f"{jp_sales:.2f}")
+        st.metric("Other Sales", f"{other_sales:.2f}")
 
-    # ---------- KPI METRICS ----------
-    st.markdown("---")
-    k1, k2, k3 = st.columns(3)
+        total_sales = na_sales + eu_sales + jp_sales + other_sales
+        st.markdown("---")
+        st.metric("🌍 Total Regional Sales", f"{total_sales:.2f}")
 
-    k1.metric("Predicted Class", text.replace("📉 ", "").replace("📊 ", "").replace("🚀 ", ""))
-    k2.metric("Confidence", f"{confidence:.2f}%")
-    k3.metric("Total Input Sales", f"{na_sales+eu_sales+jp_sales+other_sales:.2f}")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- PROBABILITY CHART ----------
-    st.markdown("---")
-    # ---------- ANIMATED SPEEDOMETER ----------
-    st.markdown("### 🎯 Confidence Meter")
+    # =====================================================
+    # RIGHT — HERO PREDICTION CARD
+    # =====================================================
+    with right_col:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
 
-    gauge_speed = px.imshow([[confidence]], text_auto=False)
+        st.markdown("### 🤖 Model Prediction")
 
-    gauge_fig = {
-        "data": [{
-            "type": "indicator",
-            "mode": "gauge+number",
-            "value": confidence,
-            "number": {"suffix": "%"},
-            "gauge": {
-                "axis": {"range": [0, 100]},
-                "bar": {"color": "#22c55e"},
-                "bgcolor": "#111827",
-                "steps": [
-                    {"range": [0, 40], "color": "#7f1d1d"},
-                    {"range": [40, 70], "color": "#78350f"},
-                    {"range": [70, 100], "color": "#052e16"},
-                ],
-            },
-        }]
-    }
+        with st.spinner("Running ML inference..."):
+            start_inf = time.perf_counter()
 
-    st.plotly_chart(gauge_fig, use_container_width=True)
-    st.subheader("🎯 Prediction Probabilities")
+            active_model = calibrated_model if use_calibrated else model
+            pred = active_model.predict(features_scaled)[0]
+            proba = active_model.predict_proba(features_scaled)[0]
+            confidence = float(np.max(proba) * 100)
 
-    prob_df = pd.DataFrame({
-        "Class": ["Low", "Medium", "High"],
-        "Probability": proba
-    })
+        latency_ms = (time.perf_counter() - start_inf) * 1000
+        st.session_state.last_latency = latency_ms
+        st.session_state.prediction_count += 1
 
-    fig_prob = px.bar(
-        prob_df,
-        x="Class",
-        y="Probability",
-        color="Probability",
-        text="Probability"
-    )
-    fig_prob.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-    st.plotly_chart(fig_prob, use_container_width=True)
-    # ---------- PROBABILITY PROGRESS BARS ----------
-    st.markdown("### 📊 Class Confidence Breakdown")
+        labels = {
+            0: ("📉 Low Sales", "#ef4444"),
+            1: ("📊 Medium Sales", "#f59e0b"),
+            2: ("🚀 High Sales", "#22c55e")
+        }
 
-    class_names = ["Low", "Medium", "High"]
+        text, color = labels.get(pred, ("Unknown", "#9aa0a6"))
 
-    for cls, prob in zip(class_names, proba):
-        st.progress(float(prob))
-        st.caption(f"{cls}: {prob:.2%}")
+        st.markdown(
+            f"""
+            <div style="text-align:center; padding:10px;">
+                <h2 style="color:{color}; margin-bottom:6px;">{text}</h2>
+                <div class="metric-big">{confidence:.2f}% confidence</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    # ---------- INPUT SENSITIVITY ----------
-    st.markdown("### 🧪 Input Sensitivity (NA Sales Sweep)")
-
-    sweep_vals = np.linspace(0, 10, 40)
-
-    sweep_data = []
-    for val in sweep_vals:
-        temp = np.array([[val, eu_sales, jp_sales, other_sales]])
-        temp_scaled = scaler.transform(temp)
-        prob_high = model.predict_proba(temp_scaled)[0][2]
-        sweep_data.append(prob_high)
-
-    sweep_df = pd.DataFrame({
-        "NA_Sales": sweep_vals,
-        "High_Sales_Prob": sweep_data
-    })
-
-    fig_sweep = px.line(
-        sweep_df,
-        x="NA_Sales",
-        y="High_Sales_Prob",
-        title="Sensitivity of High Sales Probability vs NA Sales"
-    )
-
-    st.plotly_chart(fig_sweep, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
