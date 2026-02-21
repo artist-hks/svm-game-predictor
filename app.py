@@ -468,12 +468,6 @@ with tab1:
     }
     st.caption("Adjust regional sales from the sidebar to explore predictions.")
 
-        # ---------- CALIBRATION HINT ----------
-    entropy = -np.sum(proba * np.log(proba + 1e-9))
-    st.caption(f"Prediction certainty score: {1/(1+entropy):.3f}")
-
-    text, color = labels[pred]
-    # ---------- MODEL INFERENCE ----------
     with st.spinner("Running ML inference..."):
         start_inf = time.perf_counter()
 
@@ -485,7 +479,9 @@ with tab1:
     latency_ms = (time.perf_counter() - start_inf) * 1000
     st.session_state.last_latency = latency_ms
     st.session_state.prediction_count += 1
-
+    # ---------- CALIBRATION HINT ----------
+    entropy = -np.sum(proba * np.log(proba + 1e-9))
+    st.caption(f"Prediction certainty score: {1/(1+entropy):.3f}")
     # ---------- RESULT CARD ----------
     st.markdown(
         f"""
