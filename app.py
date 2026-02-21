@@ -828,10 +828,21 @@ with tab4:
             x="Feature",
             y="Impact",
             color="Impact",
-            color_continuous_scale="Viridis",
+           color_continuous_scale=[
+            "#22c55e",
+            "#f59e0b",
+            "#ef4444"
+            ],
             title=f"Impact on Predicting Class: {labels[pred][0]}"
         )
+        fig_shap.update_layout(
+            plot_bgcolor="#020617",
+            paper_bgcolor="#020617",
+            font_color="#e5e7eb"
+        )
 
+        fig_shap.update_traces(marker_line_width=0, opacity=0.9)
+        fig_shap.update_coloraxes(showscale=False)
         st.plotly_chart(fig_shap, use_container_width=True)
 
     except Exception as e:
