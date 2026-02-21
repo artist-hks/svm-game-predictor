@@ -482,6 +482,8 @@ with tab1:
     # ---------- CALIBRATION HINT ----------
     entropy = -np.sum(proba * np.log(proba + 1e-9))
     st.caption(f"Prediction certainty score: {1/(1+entropy):.3f}")
+
+    text, color = labels.get(pred, ("Unknown", "#9aa0a6"))
     # ---------- RESULT CARD ----------
     st.markdown(
         f"""
