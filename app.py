@@ -191,52 +191,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- LOAD MODEL ----------------
+# ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_assets():
+    # Direct loading - No training inside the app! 🚀
     base_model = joblib.load("svm_model.pkl")
+    calibrated_model = joblib.load("calibrated_model.pkl")
     scaler = joblib.load("scaler.pkl")
 
-    # ---------- build calibrated model safely ----------
-    from sklearn.svm import SVC
-    from sklearn.calibration import CalibratedClassifierCV
-
-    # recreate SAME SVM config (important)
-    svm_clone = SVC(
-        probability=True,
-        kernel="rbf",
-        random_state=42
-    )
-
-    calibrated_model = CalibratedClassifierCV(
-        svm_clone,
-        method="sigmoid",
-        cv=3
-    )
-
-    # ---------- prepare real calibration data ----------
-    df = pd.read_csv("vgsales.csv").dropna(subset=[
-        "NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales", "Global_Sales"
-    ])
-
-    df["Sales_Class"] = pd.qcut(
-        df["Global_Sales"],
-        q=3,
-        labels=[0, 1, 2]
-    ).astype(int)
-
-    X_cal = df[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]]
-    y_cal = df["Sales_Class"]
-
-    # sample for speed
-    X_sample = X_cal.sample(800, random_state=42)
-    y_sample = y_cal.loc[X_sample.index]
-
-    X_scaled = scaler.transform(X_sample)
-
-    # fit calibrated model cleanly
-    calibrated_model.fit(X_scaled, y_sample)
-
     return base_model, calibrated_model, scaler
+
 model, calibrated_model, scaler = load_assets()
 
 # ----- LOAD DATASET  -----
