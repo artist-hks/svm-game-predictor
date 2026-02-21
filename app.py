@@ -418,70 +418,42 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------- SIDEBAR NAVIGATION (MANAGEMENT MENU) ----------------
-st.sidebar.markdown("""
-<div style='text-align: center; margin-bottom: 20px;'>
-    <h2 style='color: #22c55e;'>🎮 VG-Ops</h2>
-    <p style='color: #9aa0a6; font-size: 12px;'>Management Dashboard v1.0</p>
-</div>
-""", unsafe_allow_html=True)
+# ---------------- SIDEBAR (REAL-TIME SLIDERS) ----------------
+st.sidebar.markdown("## ⚙️ Control Panel")
+st.sidebar.caption("Adjust inputs and explore insights")
+st.sidebar.divider()
+st.sidebar.header("🎯 Regional Sales Input")
 
-menu = st.sidebar.radio(
-    "MAIN MENU",
-    [
-        "🏠 Command Center", 
-        "🔮 Prediction Studio", 
-        "⚙️ MLOps & Diagnostics", 
-        "📖 System Docs"
-    ]
+na_sales = st.sidebar.slider("NA Sales", 0.0, 10.0, 0.5, 0.1)
+eu_sales = st.sidebar.slider("EU Sales", 0.0, 10.0, 0.3, 0.1)
+jp_sales = st.sidebar.slider("JP Sales", 0.0, 10.0, 0.1, 0.1)
+other_sales = st.sidebar.slider("Other Sales", 0.0, 10.0, 0.05, 0.05)
+
+use_calibrated = st.sidebar.toggle(
+    "Use calibrated probabilities",
+    value=True
 )
 
-st.sidebar.divider()
-st.sidebar.caption("⚙️ System Controls")
-use_calibrated = st.sidebar.toggle("Use Calibrated Probs", value=True)
-
+features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
+features_scaled = scaler.transform(features)
 st.sidebar.markdown("---")
-st.sidebar.caption(f"Session Predictions: {st.session_state.prediction_count}")
-st.sidebar.caption("System Status: 🟢 Online")
+st.sidebar.caption(
+    f"Session predictions: {st.session_state.prediction_count}"
+)
 
-# ============================================================
-# ROUTING LOGIC (Replacing Tabs)
-# ============================================================
-
-if menu == "🏠 Command Center":
-    # Yahan Analytics (Puraana Tab 5) aur Header aayega
-    st.markdown("## 🏠 Dashboard Overview")
-    st.caption("Real-time telemetry and dataset insights.")
-    # (Hum tab5 ka code yahan dalenge)
-
-elif menu == "🔮 Prediction Studio":
-    # Yahan Input Form, Prediction (Tab 1), What-If (Tab 8), Recommender (Tab 6) aayega
-    st.markdown("## 🔮 Prediction & Simulation Studio")
-    
-    # --- PREMIUM INPUT FORM ---
-    st.markdown("### 📝 Enter Sales Data (Millions)")
-    with st.container():
-        # Forms ki tarah inputs
-        col1, col2, col3, col4 = st.columns(4)
-        na_sales = col1.number_input("🇺🇸 NA Sales", 0.0, 50.0, 0.5, 0.1)
-        eu_sales = col2.number_input("🇪🇺 EU Sales", 0.0, 50.0, 0.3, 0.1)
-        jp_sales = col3.number_input("🇯🇵 JP Sales", 0.0, 50.0, 0.1, 0.1)
-        other_sales = col4.number_input("🌍 Other Sales", 0.0, 50.0, 0.05, 0.05)
-    
-    features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
-    features_scaled = scaler.transform(features)
-    
-    st.divider()
-    # (Hum tab1, tab8, tab6 ka code yahan dalenge)
-
-elif menu == "⚙️ MLOps & Diagnostics":
-    st.markdown("## ⚙️ MLOps Command Center")
-    st.caption("Deep dive into model performance, drift, and explainability.")
-    # (Hum tab3, tab4, tab7, tab9 ka code yahan dalenge)
-
-elif menu == "📖 System Docs":
-    st.markdown("## 📖 Architecture & Documentation")
-    # (Hum tab2, tab10 ka code yahan dalenge)
+# ---------------- TABS ----------------
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+    "🎯 Prediction",
+    "📈 Feature Importance",
+    "📊 Model Comparison",
+    "🧠 SHAP Explainability",
+    "📊 Analytics Dashboard",
+    "🎮 Game Recommender",
+    "🧪 Model Diagnostics",
+    "🎛️ What-If Simulator",
+    "🧭 Drift Monitor",
+    "📘 About Model"
+])
 
 # ============================================================
 # TAB 1 — PREDICTION
