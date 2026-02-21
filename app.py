@@ -491,10 +491,25 @@ elif menu == "⚙️ MLOps & Diagnostics":
             with st.spinner("Calculating SHAP..."):
                 sample_feat = scaler.transform([[1.0, 0.5, 0.1, 0.1]])
                 shap_vals = compute_shap(sample_feat)
-                shap_for_class = shap_vals[2][0] if isinstance(shap_vals, list) else shap_vals[0]
-                shap_df = pd.DataFrame({"Feature": ["NA", "EU", "JP", "Other"], "Impact": np.abs(np.array(shap_for_class).flatten())}).sort_values("Impact", ascending=False)
+                
+                # --- Safe SHAP Array Extraction (Original Logic) ---
+                if isinstance(shap_vals, list):
+                    shap_for_class = shap_vals[2][0]  # Get values for High Sales class
+                else:
+                    shap_for_class = shap_vals[0]
+                
+                feature_names = ["NA", "EU", "JP", "Other"]
+                shap_for_class = np.array(shap_for_class).flatten()
+                
+                # Prevent length mismatch error
+                min_len = min(len(feature_names), len(shap_for_class))
+                
+                shap_df = pd.DataFrame({
+                    "Feature": feature_names[:min_len], 
+                    "Impact": np.abs(shap_for_class[:min_len])
+                }).sort_values("Impact", ascending=False)
+                
                 st.plotly_chart(px.bar(shap_df, x="Feature", y="Impact", color="Impact", title="Feature Impact"), use_container_width=True)
-
 
 # ============================================================
 # PAGE 4: SYSTEM DOCS (100% Original Text Preserved)
