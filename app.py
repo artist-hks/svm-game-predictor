@@ -1153,101 +1153,81 @@ with tab7:
         delta=f"{(misclassified/total)*100:.2f}% error"
     )
 # ============================================================
-# TAB 8 — WHAT-IF SIMULATOR (FRAGMENTED FOR ZERO LATENCY)
+# TAB 8 — WHAT-IF SIMULATOR
 # ============================================================
 with tab8:
-    @st.fragment
-    def what_if_simulator():
-        st.subheader("🎛️ What-If Simulator")
-        st.caption("Interactively explore how regional sales affect predictions. (Runs independently)")
+    st.subheader("🎛️ What-If Simulator")
+    st.caption("Interactively explore how regional sales affect predictions.")
 
-        # ---------- input sliders ----------
-        c1, c2 = st.columns(2)
+    # ---------- input sliders ----------
+    c1, c2 = st.columns(2)
 
-        with c1:
-            sim_na = st.slider("NA Sales (Sim)", 0.0, 10.0, 1.0, 0.1, key="sim_na")
-            sim_eu = st.slider("EU Sales (Sim)", 0.0, 10.0, 1.0, 0.1, key="sim_eu")
+    with c1:
+        sim_na = st.slider("NA Sales (Sim)", 0.0, 10.0, 1.0, 0.1)
+        sim_eu = st.slider("EU Sales (Sim)", 0.0, 10.0, 1.0, 0.1)
 
-        with c2:
-            sim_jp = st.slider("JP Sales (Sim)", 0.0, 10.0, 0.5, 0.1, key="sim_jp")
-            sim_other = st.slider("Other Sales (Sim)", 0.0, 10.0, 0.3, 0.1, key="sim_other")
+    with c2:
+        sim_jp = st.slider("JP Sales (Sim)", 0.0, 10.0, 0.5, 0.1)
+        sim_other = st.slider("Other Sales (Sim)", 0.0, 10.0, 0.3, 0.1)
 
-        # ---------- prediction ----------
-        sim_features = np.array([[sim_na, sim_eu, sim_jp, sim_other]])
-        sim_scaled = scaler.transform(sim_features)
+    # ---------- prediction ----------
+    sim_features = np.array([[sim_na, sim_eu, sim_jp, sim_other]])
+    sim_scaled = scaler.transform(sim_features)
 
-        sim_pred = model.predict(sim_scaled)[0]
-        sim_proba = model.predict_proba(sim_scaled)[0]
+    sim_pred = model.predict(sim_scaled)[0]
+    sim_proba = model.predict_proba(sim_scaled)[0]
 
-        class_labels = ["Low", "Medium", "High"]
+    class_labels = ["Low", "Medium", "High"]
 
-        st.markdown("### 🔮 Simulated Prediction")
-        
-        # Dynamic coloring based on prediction
-        color_map = {"Low": "#ef4444", "Medium": "#f59e0b", "High": "#22c55e"}
-        pred_label = class_labels[sim_pred]
-        
-        st.markdown(
-            f"<h3 style='color: {color_map[pred_label]}; border: 1px solid {color_map[pred_label]}; padding: 10px; border-radius: 8px; text-align: center;'>"
-            f"Predicted Class: {pred_label}</h3>", 
-            unsafe_allow_html=True
-        )
+    st.markdown("### 🔮 Simulated Prediction")
 
-        # =====================================================
-        # DECISION SWEEP (NA axis)
-        # =====================================================
-        st.markdown("### 📉 Decision Sensitivity Curve")
+    st.success(f"Predicted Class: **{class_labels[sim_pred]}**")
 
-        sweep_vals = np.linspace(0, 10, 60)
-        
-        # Fast batch prediction for the sweep instead of loop
-        sweep_features = np.zeros((len(sweep_vals), 4))
-        sweep_features[:, 0] = sweep_vals
-        sweep_features[:, 1] = sim_eu
-        sweep_features[:, 2] = sim_jp
-        sweep_features[:, 3] = sim_other
-        
-        sweep_scaled = scaler.transform(sweep_features)
-        sweep_probs = model.predict_proba(sweep_scaled)[:, 2] # Probabilities for High Sales
+    # =====================================================
+    # DECISION SWEEP (NA axis)
+    # =====================================================
+    st.markdown("### 📉 Decision Sensitivity Curve")
 
-        sweep_df = pd.DataFrame({
-            "NA_Sales": sweep_vals,
-            "High_Sales_Prob": sweep_probs
-        })
+    sweep_vals = np.linspace(0, 10, 60)
+    sweep_probs = []
 
-        fig_boundary = px.line(
-            sweep_df,
-            x="NA_Sales",
-            y="High_Sales_Prob",
-            title="How NA Sales influences High Sales probability"
-        )
-        # Optimize chart rendering
-        fig_boundary.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-        st.plotly_chart(fig_boundary, use_container_width=True)
+    for val in sweep_vals:
+        temp = np.array([[val, sim_eu, sim_jp, sim_other]])
+        temp_scaled = scaler.transform(temp)
+        sweep_probs.append(model.predict_proba(temp_scaled)[0][2])
 
-        # =====================================================
-        # CLASS PROBABILITIES
-        # =====================================================
-        st.markdown("### 📊 Class Probabilities")
+    sweep_df = pd.DataFrame({
+        "NA_Sales": sweep_vals,
+        "High_Sales_Prob": sweep_probs
+    })
 
-        prob_df = pd.DataFrame({
-            "Class": class_labels,
-            "Probability": sim_proba
-        })
+    fig_boundary = px.line(
+        sweep_df,
+        x="NA_Sales",
+        y="High_Sales_Prob",
+        title="How NA Sales influences High Sales probability"
+    )
 
-        fig_prob_sim = px.bar(
-            prob_df,
-            x="Class",
-            y="Probability",
-            color="Class",
-            color_discrete_map={"Low": "#ef4444", "Medium": "#f59e0b", "High": "#22c55e"}
-        )
-        fig_prob_sim.update_layout(showlegend=False, margin=dict(l=0, r=0, t=10, b=0))
+    st.plotly_chart(fig_boundary, use_container_width=True)
 
-        st.plotly_chart(fig_prob_sim, use_container_width=True)
+    # =====================================================
+    # CLASS PROBABILITIES
+    # =====================================================
+    st.markdown("### 📊 Class Probabilities")
 
-    # Call the fragment function
-    what_if_simulator()
+    prob_df = pd.DataFrame({
+        "Class": class_labels,
+        "Probability": sim_proba
+    })
+
+    fig_prob_sim = px.bar(
+        prob_df,
+        x="Class",
+        y="Probability",
+        color="Probability"
+    )
+
+    st.plotly_chart(fig_prob_sim, use_container_width=True)
 
 # ============================================================
 # TAB 9 — DRIFT MONITOR
