@@ -418,42 +418,70 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------- SIDEBAR (REAL-TIME SLIDERS) ----------------
-st.sidebar.markdown("## ⚙️ Control Panel")
-st.sidebar.caption("Adjust inputs and explore insights")
+# ---------------- SIDEBAR NAVIGATION (MANAGEMENT MENU) ----------------
+st.sidebar.markdown("""
+<div style='text-align: center; margin-bottom: 20px;'>
+    <h2 style='color: #22c55e;'>🎮 VG-Ops</h2>
+    <p style='color: #9aa0a6; font-size: 12px;'>Management Dashboard v1.0</p>
+</div>
+""", unsafe_allow_html=True)
+
+menu = st.sidebar.radio(
+    "MAIN MENU",
+    [
+        "🏠 Command Center", 
+        "🔮 Prediction Studio", 
+        "⚙️ MLOps & Diagnostics", 
+        "📖 System Docs"
+    ]
+)
+
 st.sidebar.divider()
-st.sidebar.header("🎯 Regional Sales Input")
+st.sidebar.caption("⚙️ System Controls")
+use_calibrated = st.sidebar.toggle("Use Calibrated Probs", value=True)
 
-na_sales = st.sidebar.slider("NA Sales", 0.0, 10.0, 0.5, 0.1)
-eu_sales = st.sidebar.slider("EU Sales", 0.0, 10.0, 0.3, 0.1)
-jp_sales = st.sidebar.slider("JP Sales", 0.0, 10.0, 0.1, 0.1)
-other_sales = st.sidebar.slider("Other Sales", 0.0, 10.0, 0.05, 0.05)
-
-use_calibrated = st.sidebar.toggle(
-    "Use calibrated probabilities",
-    value=True
-)
-
-features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
-features_scaled = scaler.transform(features)
 st.sidebar.markdown("---")
-st.sidebar.caption(
-    f"Session predictions: {st.session_state.prediction_count}"
-)
+st.sidebar.caption(f"Session Predictions: {st.session_state.prediction_count}")
+st.sidebar.caption("System Status: 🟢 Online")
 
-# ---------------- TABS ----------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
-    "🎯 Prediction",
-    "📈 Feature Importance",
-    "📊 Model Comparison",
-    "🧠 SHAP Explainability",
-    "📊 Analytics Dashboard",
-    "🎮 Game Recommender",
-    "🧪 Model Diagnostics",
-    "🎛️ What-If Simulator",
-    "🧭 Drift Monitor",
-    "📘 About Model"
-])
+# ============================================================
+# ROUTING LOGIC (Replacing Tabs)
+# ============================================================
+
+if menu == "🏠 Command Center":
+    # Yahan Analytics (Puraana Tab 5) aur Header aayega
+    st.markdown("## 🏠 Dashboard Overview")
+    st.caption("Real-time telemetry and dataset insights.")
+    # (Hum tab5 ka code yahan dalenge)
+
+elif menu == "🔮 Prediction Studio":
+    # Yahan Input Form, Prediction (Tab 1), What-If (Tab 8), Recommender (Tab 6) aayega
+    st.markdown("## 🔮 Prediction & Simulation Studio")
+    
+    # --- PREMIUM INPUT FORM ---
+    st.markdown("### 📝 Enter Sales Data (Millions)")
+    with st.container():
+        # Forms ki tarah inputs
+        col1, col2, col3, col4 = st.columns(4)
+        na_sales = col1.number_input("🇺🇸 NA Sales", 0.0, 50.0, 0.5, 0.1)
+        eu_sales = col2.number_input("🇪🇺 EU Sales", 0.0, 50.0, 0.3, 0.1)
+        jp_sales = col3.number_input("🇯🇵 JP Sales", 0.0, 50.0, 0.1, 0.1)
+        other_sales = col4.number_input("🌍 Other Sales", 0.0, 50.0, 0.05, 0.05)
+    
+    features = np.array([[na_sales, eu_sales, jp_sales, other_sales]])
+    features_scaled = scaler.transform(features)
+    
+    st.divider()
+    # (Hum tab1, tab8, tab6 ka code yahan dalenge)
+
+elif menu == "⚙️ MLOps & Diagnostics":
+    st.markdown("## ⚙️ MLOps Command Center")
+    st.caption("Deep dive into model performance, drift, and explainability.")
+    # (Hum tab3, tab4, tab7, tab9 ka code yahan dalenge)
+
+elif menu == "📖 System Docs":
+    st.markdown("## 📖 Architecture & Documentation")
+    # (Hum tab2, tab10 ka code yahan dalenge)
 
 # ============================================================
 # TAB 1 — PREDICTION
@@ -788,41 +816,43 @@ with tab3:
 # TAB 4 — SHAP EXPLAINABILITY
 # ============================================================
 with tab4:
-    st.subheader("SHAP Explainability")
+    st.subheader("🧠 SHAP Explainability")
     st.caption("Local explanation of the current prediction")
 
     try:
-        
-        @st.cache_resource
+        # 1. Properly Cache Background Data (Only @st.cache_data)
         @st.cache_data
         def get_shap_background(df):
-            sample = df[
-        ["NA_Sales","EU_Sales","JP_Sales","Other_Sales"]
-        ].dropna().sample(50, random_state=42)
-
+            sample = df[["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]].dropna().sample(50, random_state=42)
             return scaler.transform(sample)
 
         background = get_shap_background(df_games)
-        def get_explainer():
-            return shap.KernelExplainer(model.predict_proba, background)
 
-        explainer = get_explainer()
+        # 2. Cache the Heavy Explainer Object (@st.cache_resource)
+        @st.cache_resource
+        def get_explainer(_background):
+            # We use a wrapper function so it only initializes once
+            return shap.KernelExplainer(model.predict_proba, _background)
 
-        # ---------- compute shap ----------
-        shap_values = explainer.shap_values(features_scaled, nsamples=50)
+        explainer = get_explainer(background)
+
+        # 3. Cache the SHAP Computation based on user input
+        @st.cache_data
+        def compute_shap_values(input_features):
+            # It will only recalculate if input_features change
+            return explainer.shap_values(input_features, nsamples=50)
+
+        with st.spinner("Analyzing feature impact with SHAP..."):
+            shap_values = compute_shap_values(features_scaled)
 
         # ---------- handle multiclass safely ----------
-        # shap_values is list for multiclass
         if isinstance(shap_values, list):
-            # take predicted class explanation
             class_idx = int(pred)
             shap_for_class = shap_values[class_idx][0]
         else:
             shap_for_class = shap_values[0]
 
         feature_names = ["NA", "EU", "JP", "Other"]
-
-        # ---------- ensure same length ----------
         shap_for_class = np.array(shap_for_class).flatten()
 
         min_len = min(len(feature_names), len(shap_for_class))
@@ -832,20 +862,22 @@ with tab4:
             "Impact": np.abs(shap_for_class[:min_len])
         }).sort_values("Impact", ascending=False)
 
-        st.subheader("Feature Impact")
-
+        st.markdown("### 📊 Feature Impact Breakdown")
+        
         fig_shap = px.bar(
             shap_df,
             x="Feature",
             y="Impact",
-            color="Impact"
+            color="Impact",
+            color_continuous_scale="Viridis",
+            title=f"Impact on Predicting Class: {labels[pred][0]}"
         )
 
         st.plotly_chart(fig_shap, use_container_width=True)
 
     except Exception as e:
         st.error("SHAP failed to compute.")
-        st.caption(str(e))
+        st.caption(f"Error details: {str(e)}")
 
 # ============================================================
 # TAB 5 — ANALYTICS DASHBOARD
@@ -1149,81 +1181,101 @@ with tab7:
         delta=f"{(misclassified/total)*100:.2f}% error"
     )
 # ============================================================
-# TAB 8 — WHAT-IF SIMULATOR
+# TAB 8 — WHAT-IF SIMULATOR (FRAGMENTED FOR ZERO LATENCY)
 # ============================================================
 with tab8:
-    st.subheader("🎛️ What-If Simulator")
-    st.caption("Interactively explore how regional sales affect predictions.")
+    @st.fragment
+    def what_if_simulator():
+        st.subheader("🎛️ What-If Simulator")
+        st.caption("Interactively explore how regional sales affect predictions. (Runs independently)")
 
-    # ---------- input sliders ----------
-    c1, c2 = st.columns(2)
+        # ---------- input sliders ----------
+        c1, c2 = st.columns(2)
 
-    with c1:
-        sim_na = st.slider("NA Sales (Sim)", 0.0, 10.0, 1.0, 0.1)
-        sim_eu = st.slider("EU Sales (Sim)", 0.0, 10.0, 1.0, 0.1)
+        with c1:
+            sim_na = st.slider("NA Sales (Sim)", 0.0, 10.0, 1.0, 0.1, key="sim_na")
+            sim_eu = st.slider("EU Sales (Sim)", 0.0, 10.0, 1.0, 0.1, key="sim_eu")
 
-    with c2:
-        sim_jp = st.slider("JP Sales (Sim)", 0.0, 10.0, 0.5, 0.1)
-        sim_other = st.slider("Other Sales (Sim)", 0.0, 10.0, 0.3, 0.1)
+        with c2:
+            sim_jp = st.slider("JP Sales (Sim)", 0.0, 10.0, 0.5, 0.1, key="sim_jp")
+            sim_other = st.slider("Other Sales (Sim)", 0.0, 10.0, 0.3, 0.1, key="sim_other")
 
-    # ---------- prediction ----------
-    sim_features = np.array([[sim_na, sim_eu, sim_jp, sim_other]])
-    sim_scaled = scaler.transform(sim_features)
+        # ---------- prediction ----------
+        sim_features = np.array([[sim_na, sim_eu, sim_jp, sim_other]])
+        sim_scaled = scaler.transform(sim_features)
 
-    sim_pred = model.predict(sim_scaled)[0]
-    sim_proba = model.predict_proba(sim_scaled)[0]
+        sim_pred = model.predict(sim_scaled)[0]
+        sim_proba = model.predict_proba(sim_scaled)[0]
 
-    class_labels = ["Low", "Medium", "High"]
+        class_labels = ["Low", "Medium", "High"]
 
-    st.markdown("### 🔮 Simulated Prediction")
+        st.markdown("### 🔮 Simulated Prediction")
+        
+        # Dynamic coloring based on prediction
+        color_map = {"Low": "#ef4444", "Medium": "#f59e0b", "High": "#22c55e"}
+        pred_label = class_labels[sim_pred]
+        
+        st.markdown(
+            f"<h3 style='color: {color_map[pred_label]}; border: 1px solid {color_map[pred_label]}; padding: 10px; border-radius: 8px; text-align: center;'>"
+            f"Predicted Class: {pred_label}</h3>", 
+            unsafe_allow_html=True
+        )
 
-    st.success(f"Predicted Class: **{class_labels[sim_pred]}**")
+        # =====================================================
+        # DECISION SWEEP (NA axis)
+        # =====================================================
+        st.markdown("### 📉 Decision Sensitivity Curve")
 
-    # =====================================================
-    # DECISION SWEEP (NA axis)
-    # =====================================================
-    st.markdown("### 📉 Decision Sensitivity Curve")
+        sweep_vals = np.linspace(0, 10, 60)
+        
+        # Fast batch prediction for the sweep instead of loop
+        sweep_features = np.zeros((len(sweep_vals), 4))
+        sweep_features[:, 0] = sweep_vals
+        sweep_features[:, 1] = sim_eu
+        sweep_features[:, 2] = sim_jp
+        sweep_features[:, 3] = sim_other
+        
+        sweep_scaled = scaler.transform(sweep_features)
+        sweep_probs = model.predict_proba(sweep_scaled)[:, 2] # Probabilities for High Sales
 
-    sweep_vals = np.linspace(0, 10, 60)
-    sweep_probs = []
+        sweep_df = pd.DataFrame({
+            "NA_Sales": sweep_vals,
+            "High_Sales_Prob": sweep_probs
+        })
 
-    for val in sweep_vals:
-        temp = np.array([[val, sim_eu, sim_jp, sim_other]])
-        temp_scaled = scaler.transform(temp)
-        sweep_probs.append(model.predict_proba(temp_scaled)[0][2])
+        fig_boundary = px.line(
+            sweep_df,
+            x="NA_Sales",
+            y="High_Sales_Prob",
+            title="How NA Sales influences High Sales probability"
+        )
+        # Optimize chart rendering
+        fig_boundary.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+        st.plotly_chart(fig_boundary, use_container_width=True)
 
-    sweep_df = pd.DataFrame({
-        "NA_Sales": sweep_vals,
-        "High_Sales_Prob": sweep_probs
-    })
+        # =====================================================
+        # CLASS PROBABILITIES
+        # =====================================================
+        st.markdown("### 📊 Class Probabilities")
 
-    fig_boundary = px.line(
-        sweep_df,
-        x="NA_Sales",
-        y="High_Sales_Prob",
-        title="How NA Sales influences High Sales probability"
-    )
+        prob_df = pd.DataFrame({
+            "Class": class_labels,
+            "Probability": sim_proba
+        })
 
-    st.plotly_chart(fig_boundary, use_container_width=True)
+        fig_prob_sim = px.bar(
+            prob_df,
+            x="Class",
+            y="Probability",
+            color="Class",
+            color_discrete_map={"Low": "#ef4444", "Medium": "#f59e0b", "High": "#22c55e"}
+        )
+        fig_prob_sim.update_layout(showlegend=False, margin=dict(l=0, r=0, t=10, b=0))
 
-    # =====================================================
-    # CLASS PROBABILITIES
-    # =====================================================
-    st.markdown("### 📊 Class Probabilities")
+        st.plotly_chart(fig_prob_sim, use_container_width=True)
 
-    prob_df = pd.DataFrame({
-        "Class": class_labels,
-        "Probability": sim_proba
-    })
-
-    fig_prob_sim = px.bar(
-        prob_df,
-        x="Class",
-        y="Probability",
-        color="Probability"
-    )
-
-    st.plotly_chart(fig_prob_sim, use_container_width=True)
+    # Call the fragment function
+    what_if_simulator()
 
 # ============================================================
 # TAB 9 — DRIFT MONITOR
