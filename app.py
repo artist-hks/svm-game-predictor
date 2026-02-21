@@ -267,7 +267,7 @@ header {visibility: hidden;}
 
         text, color = labels.get(pred, ("Unknown", "#9aa0a6"))
 
-        st.markdown(
+       st.markdown(
             f"""
             <div style="text-align:center; padding: 20px 10px;">
                 <h2 style="color:{color}; margin-bottom: 8px; font-size: 32px;">{text}</h2>
@@ -282,8 +282,7 @@ header {visibility: hidden;}
             unsafe_allow_html=True
         )
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
+st.markdown("</div>", unsafe_allow_html=True)
 # ============================================================
 # TAB 2 — FEATURE IMPORTANCE (Permutation for SVM)
 # ============================================================
