@@ -828,7 +828,6 @@ with tab4:
             x="Feature",
             y="Impact",
             color="Impact",
-            color_continuous_scale="Viridis",
             title=f"Impact on Predicting Class: {labels[pred][0]}"
         )
 
