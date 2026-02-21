@@ -308,13 +308,14 @@ def train_comparison_models(X_train, y_train):
     from sklearn.svm import SVC
     from sklearn.naive_bayes import GaussianNB
     from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.tree import DecisionTreeClassifier
     from xgboost import XGBClassifier
 
     timings = {}
 
     # ---------- SVM ----------
     start = time.perf_counter()
-    svm = SVC(probability=True).fit(X_train, y_train)
+    svm = SVC(probability=True, random_state=42).fit(X_train, y_train)
     timings["SVM"] = time.perf_counter() - start
 
     # ---------- Naive Bayes ----------
@@ -327,15 +328,12 @@ def train_comparison_models(X_train, y_train):
     knn = KNeighborsClassifier(n_neighbors=7).fit(X_train, y_train)
     timings["KNN"] = time.perf_counter() - start
 
-        # ---------- Decision Tree ----------
+    # ---------- Decision Tree ----------
     start = time.perf_counter()
-    dt = DecisionTreeClassifier(
-        max_depth=5,
-        random_state=42
-    ).fit(X_train, y_train)
+    dt = DecisionTreeClassifier(max_depth=5, random_state=42).fit(X_train, y_train)
     timings["Decision Tree"] = time.perf_counter() - start
 
-    # ---------- XGBoost (NEW WEAPON) ----------
+    # ---------- XGBoost ----------
     start = time.perf_counter()
     xgb = XGBClassifier(
         n_estimators=200,
@@ -344,10 +342,8 @@ def train_comparison_models(X_train, y_train):
         subsample=0.9,
         colsample_bytree=0.9,
         eval_metric="mlogloss",
-        use_label_encoder=False,
         random_state=42
-    )
-    xgb.fit(X_train, y_train)
+    ).fit(X_train, y_train)
     timings["XGBoost"] = time.perf_counter() - start
 
     return svm, nb, knn, dt, xgb, timings
@@ -370,7 +366,6 @@ def train_comparison_models(X_train, y_train):
     knn = KNeighborsClassifier(n_neighbors=7).fit(X_train, y_train)
     timings["KNN"] = time.perf_counter() - start
 
-    return svm, nb, knn, timings
 @st.cache_data
 def prepare_model_data(df):
     temp = df.dropna(subset=[
