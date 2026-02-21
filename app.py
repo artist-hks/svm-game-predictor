@@ -242,8 +242,10 @@ header {visibility: hidden;}
     border-color: rgba(99,102,241,0.2);
 }
 .metric-total .metric-value {
-    color: #818cf;
-             flex-direction: column; justify-content: center;">', unsafe_allow_html=True)
+    color: #818cf8;
+}
+</style>
+""", unsafe_allow_html=True)
 
         st.markdown("<h3 style='margin-bottom: 0;'>🤖 Model Prediction</h3>", unsafe_allow_html=True)
 
