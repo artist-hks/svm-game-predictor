@@ -71,8 +71,8 @@ svm-game-sales-predictor
 ## ⚙️ Installation & Setup
 
 ### 1️⃣ Clone the repository
-git clone https://github.com/artist-hks/svm-game-sales-predictor.git
-cd svm-game-sales-predictor
+git clone https://github.com/artist-hks/svm-game-predictor.git
+cd svm-game-predictor
 
 ### 2️⃣ Install dependencies
 python -m pip install -r requirements.txt
