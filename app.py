@@ -246,6 +246,62 @@ header {visibility: hidden;}
 }
 </style>
 """, unsafe_allow_html=True)
+# ============================================================
+# TAB 1 — PREDICTION
+# ============================================================
+with tab1:
+    st.markdown("<div class='section-gap'></div>", unsafe_allow_html=True)
+    
+    # ====== MAIN TWO COLUMN LAYOUT ======
+    left_col, right_col = st.columns([1, 1.2], gap="large")
+
+    # =====================================================
+    # LEFT — INPUT SUMMARY CARD
+    # =====================================================
+    with left_col:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("### 🧾 Current Input Snapshot")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Custom metric layout
+        st.markdown(f"""
+        <div class="metric-row">
+            <div class="metric-box">
+                <div class="metric-label">NA Sales</div>
+                <div class="metric-value">{na_sales:.2f}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">EU Sales</div>
+                <div class="metric-value">{eu_sales:.2f}</div>
+            </div>
+        </div>
+        <div class="metric-row" style="margin-top: 12px;">
+            <div class="metric-box">
+                <div class="metric-label">JP Sales</div>
+                <div class="metric-value">{jp_sales:.2f}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Other Sales</div>
+                <div class="metric-value">{other_sales:.2f}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        total_sales = na_sales + eu_sales + jp_sales + other_sales
+        st.markdown(f"""
+        <div class="metric-total">
+            <div class="metric-label">🌍 Total Regional Sales</div>
+            <div class="metric-value">{total_sales:.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # =====================================================
+    # RIGHT — HERO PREDICTION CARD
+    # =====================================================
+    with right_col:
+        st.markdown('<div class="glass-card" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">', unsafe_allow_html=True)
 
         st.markdown("<h3 style='margin-bottom: 0;'>🤖 Model Prediction</h3>", unsafe_allow_html=True)
 
@@ -257,6 +313,7 @@ header {visibility: hidden;}
             proba = active_model.predict_proba(features_scaled)[0]
             confidence = float(np.max(proba) * 100)
 
+        # Fixed Indentation: These run AFTER the spinner completes
         latency_ms = (time.perf_counter() - start_inf) * 1000
         st.session_state.last_latency = latency_ms
         st.session_state.prediction_count += 1
@@ -269,7 +326,8 @@ header {visibility: hidden;}
 
         text, color = labels.get(pred, ("Unknown", "#9aa0a6"))
 
-       st.markdown(
+        # Fixed Indentation: Properly aligned st.markdown
+        st.markdown(
             f"""
             <div style="text-align:center; padding: 20px 10px;">
                 <h2 style="color:{color}; margin-bottom: 8px; font-size: 32px;">{text}</h2>
